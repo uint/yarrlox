@@ -62,7 +62,7 @@ fn run_repl() -> anyhow::Result<()> {
         prompt()?;
     }
 
-    eprintln!("");
+    eprintln!();
     eprintln!("Buh-bye!");
 
     Ok(())
