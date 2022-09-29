@@ -1,9 +1,17 @@
 use std::{
-    env,
     io::{self, Write},
-    path::Path,
+    path::{Path, PathBuf},
     process::exit,
 };
+
+use clap::Parser;
+
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    /// Script to run. If not provided, a REPL session is started
+    script: Option<PathBuf>,
+}
 
 fn main() {
     if let Err(err) = run_cli() {
@@ -12,38 +20,21 @@ fn main() {
 }
 
 fn run_cli() -> anyhow::Result<()> {
-    if env::args().len() > 2 {
-        return Err(anyhow::anyhow!("too many arguments"));
-    }
+    let cli = Cli::parse();
 
-    match env::args().nth(1) {
-        Some(path) => run_script(path)?,
-        None => run_repl(),
+    match cli.script {
+        Some(script) => run_script(script)?,
+        None => run_repl()?,
     }
 
     Ok(())
 }
 
-/// This error handler is for basic errors when trying to use the CLI
-/// (wrong path, wrong args, etc.). This isn't the handler for compilation
-/// errors.
 fn error_handler(err: anyhow::Error) {
-    let exe_name = env::current_exe()
-        .map(|p| {
-            p.into_iter()
-                .last()
-                .map(|s| s.to_os_string().into_string().ok())
-                .flatten()
-        })
-        .ok()
-        .flatten()
-        .unwrap_or(env!("CARGO_CRATE_NAME").to_string());
-
-    eprintln!("Usage: {} [script]", exe_name,);
-    eprintln!();
-    eprintln!("The interpreter has met an awful fate. Argh!");
+    eprintln!("yarrlox encountered a critical error! Argh!");
     eprintln!("{}", err);
-    exit(1)
+
+    exit(42)
 }
 
 fn run_script(path: impl AsRef<Path>) -> anyhow::Result<()> {
@@ -53,21 +44,26 @@ fn run_script(path: impl AsRef<Path>) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn run_repl() {
-    fn prompt() {
+fn run_repl() -> anyhow::Result<()> {
+    fn prompt() -> std::io::Result<()> {
         print!("> ");
-        io::stdout().flush().unwrap();
+        io::stdout().flush()
     }
 
     let stdin = io::stdin().lines();
 
-    prompt();
+    prompt()?;
 
     for line in stdin {
         match line {
             Ok(line) => println!("{}", yarrlox::eval(&line)),
             Err(e) => eprintln!("Error reading line: {}", e),
         }
-        prompt();
+        prompt()?;
     }
+
+    eprintln!("");
+    eprintln!("Buh-bye!");
+
+    Ok(())
 }
