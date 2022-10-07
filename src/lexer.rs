@@ -49,7 +49,7 @@ pub enum Token<'source> {
     Identifier(&'source str),
     #[regex(r#""([^"\\]|\\.)*""#)]
     StringLit(&'source str),
-    #[regex("[0-9]+")]
+    #[regex(r#"[0-9]+(\.[0-9]+)?"#)]
     NumLit(&'source str),
 
     // Keywords.
@@ -181,6 +181,22 @@ mod tests {
                 Semicolon,
             ],
         );
+    }
+
+    #[test]
+    fn integers() {
+        use Token::*;
+
+        assert_lexer("324", [NumLit("324")]);
+    }
+
+    #[test]
+    fn decimals() {
+        use Token::*;
+
+        assert_lexer("324.5", [NumLit("324.5")]);
+        assert_lexer("324.", [NumLit("324"), Dot]);
+        assert_lexer(".5", [Dot, NumLit("5")]);
     }
 
     #[test]
