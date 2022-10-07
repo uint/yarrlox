@@ -139,7 +139,7 @@ mod tests {
         for (left, right) in left_vec.clone().into_iter().zip(right_vec.clone()) {
             if left != right {
                 panic!(
-                    "tokens didn't match: left: {:?}, right: {:?}\nleft: {:?}\nright: {:?}",
+                    "tokens didn't match: left: {:?}, right: {:?}\nleft : {:?}\nright: {:?}",
                     left, right, left_vec, right_vec
                 );
             }
@@ -167,12 +167,12 @@ mod tests {
         );
 
         assert_lexer(
-            r#"var foo = "as \n\\n \"d\""; var bar = "dsa";"#,
+            r#"var foo = "👁💃🕺🈯️as  \n\\n \"d\""; var bar = "dsa";"#,
             [
                 Var,
                 Identifier("foo"),
                 Equal,
-                StringLit(r#""as \n\\n \"d\"""#),
+                StringLit(r#""👁💃🕺🈯️as  \n\\n \"d\"""#),
                 Semicolon,
                 Var,
                 Identifier("bar"),
@@ -203,7 +203,7 @@ mod tests {
     fn ignore_block_comments() {
         use Token::*;
 
-        assert_lexer("var var /* var a * / = 5; */ ;", [Var, Var, Semicolon]);
+        assert_lexer("var var /* var a * / = 👾🈯️ 5; */ ;", [Var, Var, Semicolon]);
     }
 
     #[test]
