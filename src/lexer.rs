@@ -207,7 +207,7 @@ mod tests {
     }
 
     #[test]
-    fn unclosed_block_comment() {
+    fn unclosed_block_comments() {
         use Token::*;
 
         assert_lexer("var var /* var a = 5;", [Var, Var, UnclosedBlockComment]);
