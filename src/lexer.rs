@@ -109,20 +109,25 @@ fn skip_block_comment<'source>(lex: &mut Lexer<'source, Token<'source>>) -> Filt
 #[cfg(test)]
 mod tests {
     use super::*;
+    use helpers::*;
 
-    trait IntoTokens {
-        fn into_tokens(self) -> Vec<Token<'static>>;
-    }
+    mod helpers {
+        use super::super::*;
 
-    impl IntoTokens for &'static str {
-        fn into_tokens(self) -> Vec<Token<'static>> {
-            Token::lexer(self).into_iter().collect()
+        pub trait IntoTokens {
+            fn into_tokens(self) -> Vec<Token<'static>>;
         }
-    }
 
-    impl<const N: usize> IntoTokens for [Token<'static>; N] {
-        fn into_tokens(self) -> Vec<Token<'static>> {
-            self.to_vec()
+        impl IntoTokens for &'static str {
+            fn into_tokens(self) -> Vec<Token<'static>> {
+                Token::lexer(self).into_iter().collect()
+            }
+        }
+
+        impl<const N: usize> IntoTokens for [Token<'static>; N] {
+            fn into_tokens(self) -> Vec<Token<'static>> {
+                self.to_vec()
+            }
         }
     }
 
