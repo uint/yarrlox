@@ -93,7 +93,7 @@ pub enum Token<'source> {
     InvalidToken,
 
     #[token("/*", skip_block_comment)]
-    UnclosedBlockComment,
+    UnterminatedBlockComment,
 }
 
 fn skip_block_comment<'source>(lex: &mut Lexer<'source, Token<'source>>) -> Filter<()> {
@@ -101,7 +101,7 @@ fn skip_block_comment<'source>(lex: &mut Lexer<'source, Token<'source>>) -> Filt
         lex.bump(ix + 2);
         Filter::Skip
     } else {
-        // emit UnclosedBlockComment
+        // emit UnterminatedBlockComment
         Filter::Emit(())
     }
 }
@@ -207,9 +207,12 @@ mod tests {
     }
 
     #[test]
-    fn unclosed_block_comments() {
+    fn unterminated_block_comments() {
         use Token::*;
 
-        assert_lexer("var var /* var a = 5;", [Var, Var, UnclosedBlockComment]);
+        assert_lexer(
+            "var var /* var a = 5;",
+            [Var, Var, UnterminatedBlockComment],
+        );
     }
 }
