@@ -97,13 +97,16 @@ pub enum Token<'source> {
 }
 
 fn skip_block_comment<'source>(lex: &mut Lexer<'source, Token<'source>>) -> Filter<()> {
-    if let Some(ix) = lex.remainder().find("*/") {
-        lex.bump(ix + 2);
-        Filter::Skip
-    } else {
-        lex.bump(lex.remainder().len());
-        // emit UnterminatedBlockComment
-        Filter::Emit(())
+    match lex.remainder().find("*/") {
+        Some(ix) => {
+            lex.bump(ix + 2);
+            Filter::Skip
+        }
+        None => {
+            lex.bump(lex.remainder().len());
+            // emit UnterminatedBlockComment
+            Filter::Emit(())
+        }
     }
 }
 
