@@ -9,4 +9,5 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 anyhow = "1.0.65"
 clap = { version = "4.0.4", features = ["derive"] }
+enum_dispatch = "0.3.8"
 logos = "0.12.1"

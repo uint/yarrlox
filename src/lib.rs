@@ -7,6 +7,7 @@ use logos::Logos;
 
 pub mod errors;
 mod lexer;
+mod parser;
 
 pub fn eval(source: &str, error_reporter: impl ErrorReporter) -> String {
     let tokens: Vec<_> = Token::lexer(source).spanned().collect();
