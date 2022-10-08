@@ -101,6 +101,7 @@ fn skip_block_comment<'source>(lex: &mut Lexer<'source, Token<'source>>) -> Filt
         lex.bump(ix + 2);
         Filter::Skip
     } else {
+        lex.bump(lex.remainder().len());
         // emit UnterminatedBlockComment
         Filter::Emit(())
     }
