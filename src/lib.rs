@@ -5,6 +5,7 @@ use crate::{errors::Error, lexer::Token};
 // TODO: remove this import by better encapsulating the lexer
 use logos::Logos;
 
+mod ast;
 pub mod errors;
 mod lexer;
 mod parser;
