@@ -23,6 +23,8 @@ pub struct SimpleReporter;
 
 impl ErrorReporter for SimpleReporter {
     fn report(&self, _source: &str, e: &Error) {
+        // TODO: calculate the line number at least
+        // bonus points: print a source code fragment and point to the problematic span
         eprintln!("Error in span {:?}: {}", e.span, e.msg);
     }
 }

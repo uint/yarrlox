@@ -1,3 +1,6 @@
+// The macro here is probably a bit overkill, but it does make the AST
+// defs look so much cleaner.
+
 yarrlox_macros::define_ast! {
     enum Expr<'src> {
         struct Binary<'src> {
