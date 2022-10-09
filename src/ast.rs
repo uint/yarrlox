@@ -19,7 +19,7 @@ yarrlox_macros::define_ast! {
     }
 }
 
-enum BinaryOp {
+pub enum BinaryOp {
     Add,
     Sub,
     Mul,

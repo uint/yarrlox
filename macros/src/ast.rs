@@ -2,7 +2,9 @@ use syn::{braced, parse_quote, Generics, Ident, Item, ItemStruct, Token, Variant
 
 pub fn define_ast(input: AstDef) -> Vec<Item> {
     match input {
-        AstDef::Struct(struct_def) => vec![Item::Struct(struct_def)],
+        AstDef::Struct(struct_def) => {
+            vec![parse_quote! {pub #struct_def}]
+        }
         AstDef::Enum {
             ident,
             generics,
@@ -13,7 +15,7 @@ pub fn define_ast(input: AstDef) -> Vec<Item> {
                 let generics = v.generics();
                 parse_quote! {#ident(#ident #generics)}
             });
-            let mut defs = vec![Item::Enum(parse_quote! {enum #ident #generics {
+            let mut defs = vec![Item::Enum(parse_quote! {pub enum #ident #generics {
                 #(#variants),*
             }})];
             defs.extend(content.into_iter().map(define_ast).flatten());
@@ -91,7 +93,7 @@ mod tests {
         assert_eq!(
             result,
             [parse_quote! {
-                struct Expr {
+                pub struct Expr {
                     x: u32,
                     y: String,
                 }
@@ -108,7 +110,7 @@ mod tests {
         assert_eq!(
             result,
             [parse_quote! {
-                enum Expr {}
+                pub enum Expr {}
             }]
         );
     }
@@ -127,20 +129,20 @@ mod tests {
             result,
             [
                 parse_quote! {
-                    enum Expr {
+                    pub enum Expr {
                         Foo(Foo),
                         Bar(Bar),
                         Baz(Baz)
                     }
                 },
                 parse_quote! {
-                    struct Foo;
+                    pub struct Foo;
                 },
                 parse_quote! {
-                    struct Bar(u32);
+                    pub struct Bar(u32);
                 },
                 parse_quote! {
-                    struct Baz {x: String}
+                    pub struct Baz {x: String}
                 }
             ]
         );
@@ -160,20 +162,20 @@ mod tests {
             result,
             [
                 parse_quote! {
-                    enum Expr<'src> {
+                    pub enum Expr<'src> {
                         Foo(Foo),
                         Bar(Bar<'src>),
                         Baz(Baz<'src>)
                     }
                 },
                 parse_quote! {
-                    struct Foo;
+                    pub struct Foo;
                 },
                 parse_quote! {
-                    struct Bar<'src>(&'src str);
+                    pub struct Bar<'src>(&'src str);
                 },
                 parse_quote! {
-                    struct Baz<'src> {x: &'src str}
+                    pub struct Baz<'src> {x: &'src str}
                 }
             ]
         );
