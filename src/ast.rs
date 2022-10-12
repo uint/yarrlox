@@ -1,5 +1,9 @@
-// The macro here is probably a bit overkill, but it does make the AST
-// defs look so much cleaner.
+// In the book, Robert suggests the visitor pattern as a way to separate behavior
+// from the AST definition. This probably makes sense for Java or C++.
+//
+// In Rust, we can use pattern matching and algebraic data types instead. It's possible
+// to implement the visitor pattern, but that means more boilerplate and less
+// idiomatic code. I didn't find enough justification for using the visitor pattern.
 
 yarrlox_macros::define_ast! {
     enum Expr<'src> {
