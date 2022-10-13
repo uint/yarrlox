@@ -1,7 +1,31 @@
-use logos::{Filter, Lexer, Logos};
+use std::ops::Range;
+
+use logos::{Filter, Logos};
+
+pub struct Lexer<'src> {
+    // The fact we use the `logos` lexer is an implementation detail of our `Lexer`.
+    // We might want to change that in the future, so we encapsulate this detail.
+    inner: logos::SpannedIter<'src, Token<'src>>,
+}
+
+impl<'src> Lexer<'src> {
+    pub fn new(source: &'src str) -> Self {
+        Self {
+            inner: Token::lexer(source).spanned(),
+        }
+    }
+}
+
+impl<'src> Iterator for Lexer<'src> {
+    type Item = (Token<'src>, Range<usize>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next()
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Logos)]
-pub enum Token<'source> {
+pub enum Token<'src> {
     // Single-character tokens.
     #[token("(")]
     LeftParen,
@@ -46,11 +70,11 @@ pub enum Token<'source> {
 
     // Literals.
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*")]
-    Identifier(&'source str),
+    Identifier(&'src str),
     #[regex(r#""([^"\\]|\\.)*""#)]
-    StringLit(&'source str),
+    StringLit(&'src str),
     #[regex(r#"[0-9]+(\.[0-9]+)?"#)]
-    NumLit(&'source str),
+    NumLit(&'src str),
 
     // Keywords.
     #[token("and")]
@@ -96,7 +120,7 @@ pub enum Token<'source> {
     UnterminatedBlockComment,
 }
 
-fn skip_block_comment<'source>(lex: &mut Lexer<'source, Token<'source>>) -> Filter<()> {
+fn skip_block_comment<'src>(lex: &mut logos::Lexer<'src, Token<'src>>) -> Filter<()> {
     match lex.remainder().find("*/") {
         Some(ix) => {
             lex.bump(ix + 2);
@@ -124,7 +148,7 @@ mod tests {
 
         impl IntoTokens for &'static str {
             fn into_tokens(self) -> Vec<Token<'static>> {
-                Token::lexer(self).into_iter().collect()
+                Lexer::new(self).into_iter().map(|t| t.0).collect()
             }
         }
 
