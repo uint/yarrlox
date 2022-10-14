@@ -172,4 +172,22 @@ mod tests {
 
         assert_eq!(expr, expected);
     }
+
+    #[test]
+    fn parse_grouping() {
+        let expr = Parser::new("1 + (2 + foo)").parse_expr();
+        dbg!(&expr);
+
+        let expected = Expr::Binary(Binary {
+            left: Box::new(Expr::Literal(Literal::NumLit(NumLit("1")))),
+            right: Box::new(Expr::Binary(Binary {
+                left: Box::new(Expr::Literal(Literal::NumLit(NumLit("2")))),
+                right: Box::new(Expr::Literal(Literal::Identifier(Identifier("foo")))),
+                op: BinaryOp::Add,
+            })),
+            op: BinaryOp::Add,
+        });
+
+        assert_eq!(expr, expected);
+    }
 }

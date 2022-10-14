@@ -13,4 +13,4 @@ anyhow = "1.0.65"
 clap = { version = "4.0.4", features = ["derive"] }
 enum_dispatch = "0.3.8"
 logos = "0.12.1"
-yarrlox_macros = {version = "0.1.0", path = "macros"}
+structstruck = "0.2.2"
