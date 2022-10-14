@@ -18,7 +18,9 @@ impl<'src> Parser<'src> {
         self.parse_binop(0)
     }
 
-    /// Parses binary operations using precedence climbing
+    /// Parses binary operations using precedence climbing. This is conceptually the
+    /// same thing as the book describes when parsing equality, comparisons, terms,
+    /// and factors, but here we condense all of that into one step.
     fn parse_binop(&mut self, min_prec: u32) -> Expr<'src> {
         let mut expr = self.parse_unary();
 
