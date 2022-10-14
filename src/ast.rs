@@ -18,14 +18,16 @@ yarrlox_macros::define_ast! {
         enum Literal<'src> {
             struct StringLit<'src>(pub &'src str);
             struct NumLit<'src>(pub &'src str);
+            struct Identifier<'src>(pub &'src str);
         }
         struct Unary<'src> {
-            pub operator: UnaryOp,
+            pub op: UnaryOp,
             pub right: Box<Expr<'src>>,
         }
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub enum BinaryOp {
     Add,
     Sub,
@@ -39,6 +41,7 @@ pub enum BinaryOp {
     NotEq,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum UnaryOp {
     Negation,
     Not,

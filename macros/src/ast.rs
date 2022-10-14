@@ -3,7 +3,10 @@ use syn::{braced, parse_quote, Generics, Ident, Item, ItemStruct, Token, Variant
 pub fn define_ast(input: AstDef) -> Vec<Item> {
     match input {
         AstDef::Struct(struct_def) => {
-            vec![parse_quote! {pub #struct_def}]
+            vec![parse_quote! {
+                #[derive(Debug, PartialEq)]
+                pub #struct_def
+            }]
         }
         AstDef::Enum {
             ident,
@@ -15,9 +18,12 @@ pub fn define_ast(input: AstDef) -> Vec<Item> {
                 let generics = v.generics();
                 parse_quote! {#ident(#ident #generics)}
             });
-            let mut defs = vec![Item::Enum(parse_quote! {pub enum #ident #generics {
-                #(#variants),*
-            }})];
+            let mut defs = vec![Item::Enum(parse_quote! {
+                #[derive(Debug, PartialEq)]
+                pub enum #ident #generics {
+                    #(#variants),*
+                }
+            })];
             defs.extend(content.into_iter().map(define_ast).flatten());
             defs
         }
