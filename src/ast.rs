@@ -8,20 +8,20 @@
 yarrlox_macros::define_ast! {
     enum Expr<'src> {
         struct Binary<'src> {
-            left: Box<Expr<'src>>,
-            operator: BinaryOp,
-            right: Box<Expr<'src>>,
+            pub left: Box<Expr<'src>>,
+            pub op: BinaryOp,
+            pub right: Box<Expr<'src>>,
         }
         struct Grouping<'src> {
-            expr: Box<Expr<'src>>,
+            pub expr: Box<Expr<'src>>,
         }
         enum Literal<'src> {
-            struct StringLit<'src>(&'src str);
-            struct NumLit<'src>(&'src str);
+            struct StringLit<'src>(pub &'src str);
+            struct NumLit<'src>(pub &'src str);
         }
         struct Unary<'src> {
-            operator: BinaryOp,
-            right: Box<Expr<'src>>,
+            pub operator: UnaryOp,
+            pub right: Box<Expr<'src>>,
         }
     }
 }
@@ -31,4 +31,15 @@ pub enum BinaryOp {
     Sub,
     Mul,
     Div,
+    Gt,
+    Lt,
+    Gte,
+    Lte,
+    Eq,
+    NotEq,
+}
+
+pub enum UnaryOp {
+    Negation,
+    Not,
 }

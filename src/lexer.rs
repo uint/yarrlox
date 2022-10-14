@@ -1,3 +1,4 @@
+use std::iter::Peekable;
 use std::ops::Range;
 
 use logos::{Filter, Logos};
@@ -5,14 +6,18 @@ use logos::{Filter, Logos};
 pub struct Lexer<'src> {
     // The fact we use the `logos` lexer is an implementation detail of our `Lexer`.
     // We might want to change that in the future, so we encapsulate this detail.
-    inner: logos::SpannedIter<'src, Token<'src>>,
+    inner: Peekable<logos::SpannedIter<'src, Token<'src>>>,
 }
 
 impl<'src> Lexer<'src> {
     pub fn new(source: &'src str) -> Self {
         Self {
-            inner: Token::lexer(source).spanned(),
+            inner: Token::lexer(source).spanned().peekable(),
         }
+    }
+
+    pub fn peek(&mut self) -> Option<&Token<'_>> {
+        self.inner.peek().map(|(token, span)| token)
     }
 }
 
