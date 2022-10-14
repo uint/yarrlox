@@ -57,7 +57,7 @@ impl<'src> Parser<'src> {
 
         while let Some(op) = self.peek_unary_operator() {
             self.lexer.next();
-            ops.push_back(op);
+            ops.push_front(op);
         }
 
         let mut expr = self.parse_atom();
