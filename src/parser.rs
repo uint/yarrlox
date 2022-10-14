@@ -1,4 +1,4 @@
-use std::collections::{vec_deque, VecDeque};
+use std::collections::VecDeque;
 
 use crate::ast::{Binary, BinaryOp, Expr, Identifier, Literal, NumLit, StringLit, Unary, UnaryOp};
 use crate::lexer::{Lexer, Token};
@@ -118,6 +118,7 @@ impl<'src> Parser<'src> {
     }
 }
 
+#[allow(unused)]
 enum Assoc {
     Left,
     Right,

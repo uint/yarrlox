@@ -17,7 +17,7 @@ impl<'src> Lexer<'src> {
     }
 
     pub fn peek(&mut self) -> Option<&Token<'_>> {
-        self.inner.peek().map(|(token, span)| token)
+        self.inner.peek().map(|(token, _span)| token)
     }
 }
 
