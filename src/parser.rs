@@ -1,6 +1,8 @@
 use std::collections::VecDeque;
 
-use crate::ast::{Binary, BinaryOp, Expr, Identifier, Literal, NumLit, StringLit, Unary, UnaryOp};
+use crate::ast::{
+    Binary, BinaryOp, Expr, Grouping, Identifier, Literal, NumLit, StringLit, Unary, UnaryOp,
+};
 use crate::lexer::{Lexer, Token};
 
 pub struct Parser<'src> {
@@ -85,7 +87,9 @@ impl<'src> Parser<'src> {
     }
 
     fn parse_paren_expr(&mut self) -> Expr<'src> {
-        let expr = self.parse_expr();
+        let expr = Expr::Grouping(Grouping {
+            expr: Box::new(self.parse_expr()),
+        });
         self.parse_token(Token::RightParen);
         expr
     }
@@ -180,10 +184,12 @@ mod tests {
 
         let expected = Expr::Binary(Binary {
             left: Box::new(Expr::Literal(Literal::NumLit(NumLit("1")))),
-            right: Box::new(Expr::Binary(Binary {
-                left: Box::new(Expr::Literal(Literal::NumLit(NumLit("2")))),
-                right: Box::new(Expr::Literal(Literal::Identifier(Identifier("foo")))),
-                op: BinaryOp::Add,
+            right: Box::new(Expr::Grouping(Grouping {
+                expr: Box::new(Expr::Binary(Binary {
+                    left: Box::new(Expr::Literal(Literal::NumLit(NumLit("2")))),
+                    right: Box::new(Expr::Literal(Literal::Identifier(Identifier("foo")))),
+                    op: BinaryOp::Add,
+                })),
             })),
             op: BinaryOp::Add,
         });

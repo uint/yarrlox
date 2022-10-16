@@ -36,5 +36,8 @@ structstruck::strike! {
             },
             pub right: Box<Expr<'src>>,
         }),
+        Grouping(pub struct<'src> {
+            pub expr: Box<Expr<'src>>,
+        }),
     }
 }
