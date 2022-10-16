@@ -26,12 +26,16 @@ pub fn interpret<'src>(expr: &Expr<'src>) -> Value<'src> {
 
     match expr {
         Expr::Literal(l) => match l {
-            Literal::StringLit(StringLit(l)) => String(l),
+            Literal::StringLit(StringLit(l)) => Value::string(*l),
             Literal::NumLit(NumLit(l)) => Num(l.parse().unwrap()),
             Literal::Identifier(i) => todo!(),
         },
         Expr::Binary(Binary { left, op, right }) => match op {
-            BinaryOp::Add => impl_arithmetic!(left + right),
+            BinaryOp::Add => match (interpret(left), interpret(right)) {
+                (Num(left), Num(right)) => Num(left + right),
+                (String(left), String(right)) => Value::string(format!("{}{}", left, right)),
+                _ => panic!("oh noes"),
+            },
             BinaryOp::Sub => impl_arithmetic!(left - right),
             BinaryOp::Mul => impl_arithmetic!(left * right),
             BinaryOp::Div => impl_arithmetic!(left / right),
