@@ -14,3 +14,4 @@ clap = { version = "4.0.4", features = ["derive"] }
 enum_dispatch = "0.3.8"
 logos = "0.12.1"
 structstruck = "0.2.2"
+thiserror = "1.0.37"
