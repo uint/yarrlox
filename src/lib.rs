@@ -11,7 +11,7 @@ mod value;
 
 pub fn eval(source: &str, _error_reporter: impl ErrorReporter) -> String {
     let mut parser = Parser::new(source);
-    let expr = parser.parse_expr();
+    let expr = parser.parse_expr().unwrap();
 
     format!("{}", interpret(&expr).unwrap())
 }

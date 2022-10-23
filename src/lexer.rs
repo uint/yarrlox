@@ -16,8 +16,8 @@ impl<'src> Lexer<'src> {
         }
     }
 
-    pub fn peek(&mut self) -> Option<&Token<'_>> {
-        self.inner.peek().map(|(token, _span)| token)
+    pub fn peek(&mut self) -> Option<Token<'src>> {
+        self.inner.peek().map(|(token, _span)| *token)
     }
 }
 
@@ -29,7 +29,7 @@ impl<'src> Iterator for Lexer<'src> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Logos)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Logos)]
 pub enum Token<'src> {
     // Single-character tokens.
     #[token("(")]

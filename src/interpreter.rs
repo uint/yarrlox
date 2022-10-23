@@ -1,6 +1,4 @@
-use crate::ast::{
-    Binary, BinaryOp, Expr, Grouping, Identifier, Literal, NumLit, StringLit, Unary, UnaryOp,
-};
+use crate::ast::{Binary, BinaryOp, Expr, Grouping, Literal, NumLit, StringLit, Unary, UnaryOp};
 use crate::value::{Type, Value};
 
 macro_rules! impl_arithmetic {
@@ -28,7 +26,7 @@ pub fn interpret<'src>(expr: &Expr<'src>) -> Result<Value<'src>, InterpretError>
         Expr::Literal(l) => match l {
             Literal::StringLit(StringLit(l)) => Value::string(*l),
             Literal::NumLit(NumLit(l)) => Num(l.parse().unwrap()),
-            Literal::Identifier(i) => todo!(),
+            Literal::Identifier(_) => todo!(),
         },
         Expr::Binary(Binary { left, op, right }) => match op {
             BinaryOp::Add => match (interpret(left)?, interpret(right)?) {
