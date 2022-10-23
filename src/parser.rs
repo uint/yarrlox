@@ -7,14 +7,37 @@ use crate::lexer::Lexer;
 use crate::token::{SpannedToken, Token};
 
 pub struct Parser<'src> {
+    errors: Vec<ParserError<'src>>,
     lexer: Lexer<'src>,
 }
 
 impl<'src> Parser<'src> {
     pub fn new(src: &'src str) -> Self {
         Self {
+            errors: vec![],
             lexer: Lexer::new(src),
         }
+    }
+
+    fn synchronize(&mut self) {
+        if let Some(mut previous) = self.lexer.next() {
+            while let Some(token) = self.lexer.peek() {
+                use Token::*;
+
+                if previous.token == Semicolon {
+                    return;
+                }
+
+                match token {
+                    Class | Fun | Var | For | If | While | Print | Return => return,
+                    _ => previous = self.lexer.next().unwrap(),
+                }
+            }
+        }
+    }
+
+    fn is_at_end(&mut self) -> bool {
+        self.lexer.peek().is_none()
     }
 
     pub fn parse_expr(&mut self) -> ParseResult<'src> {
