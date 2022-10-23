@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use crate::ast::{
     Binary, BinaryOp, Expr, Grouping, Identifier, Literal, NumLit, StringLit, Unary, UnaryOp,
 };
-use crate::lexer::{Lexer, Token};
+use crate::lexer::{Lexer, SpannedToken, Token};
 
 pub struct Parser<'src> {
     lexer: Lexer<'src>,
@@ -76,7 +76,7 @@ impl<'src> Parser<'src> {
 
     /// Parses literals and groupings (parenthesized expressions)
     fn parse_atom(&mut self) -> ParseResult<'src> {
-        let (token, _span) = self.lexer.next().unwrap();
+        let SpannedToken { token, .. } = self.lexer.next().unwrap();
         Ok(match token {
             Token::NumLit(l) => Expr::Literal(Literal::NumLit(NumLit(l))),
             Token::StringLit(l) => Expr::Literal(Literal::StringLit(StringLit(l))),
@@ -90,7 +90,7 @@ impl<'src> Parser<'src> {
         let expr = Expr::Grouping(Grouping {
             expr: Box::new(self.parse_expr()?),
         });
-        self.expect(Token::RightParen);
+        self.expect(Token::RightParen)?;
         Ok(expr)
     }
 
@@ -98,7 +98,7 @@ impl<'src> Parser<'src> {
         let token = self.lexer.peek().ok_or(ParserError::UnexpectedEof)?;
 
         if token == expected {
-            Ok(self.lexer.next().unwrap().0)
+            Ok(self.lexer.next().unwrap().token)
         } else {
             Err(ParserError::UnexpectedToken(self.lexer.peek().unwrap()))
         }

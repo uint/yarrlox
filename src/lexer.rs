@@ -22,10 +22,12 @@ impl<'src> Lexer<'src> {
 }
 
 impl<'src> Iterator for Lexer<'src> {
-    type Item = (Token<'src>, Range<usize>);
+    type Item = SpannedToken<'src>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next()
+        self.inner
+            .next()
+            .map(|(token, span)| SpannedToken { token, span })
     }
 }
 
@@ -144,6 +146,11 @@ fn skip_block_comment<'src>(lex: &mut logos::Lexer<'src, Token<'src>>) -> Filter
     }
 }
 
+pub struct SpannedToken<'src> {
+    pub token: Token<'src>,
+    pub span: Range<usize>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -158,7 +165,7 @@ mod tests {
 
         impl IntoTokens for &'static str {
             fn into_tokens(self) -> Vec<Token<'static>> {
-                Lexer::new(self).into_iter().map(|t| t.0).collect()
+                Lexer::new(self).into_iter().map(|t| t.token).collect()
             }
         }
 
