@@ -3,7 +3,8 @@ use std::collections::VecDeque;
 use crate::ast::{
     Binary, BinaryOp, Expr, Grouping, Identifier, Literal, NumLit, StringLit, Unary, UnaryOp,
 };
-use crate::lexer::{Lexer, SpannedToken, Token};
+use crate::lexer::Lexer;
+use crate::token::{SpannedToken, Token};
 
 pub struct Parser<'src> {
     lexer: Lexer<'src>,

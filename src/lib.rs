@@ -7,6 +7,7 @@ pub mod errors;
 mod interpreter;
 mod lexer;
 mod parser;
+mod token;
 mod value;
 
 pub fn eval(source: &str, _error_reporter: impl ErrorReporter) -> String {
