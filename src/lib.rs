@@ -12,7 +12,10 @@ mod value;
 
 pub fn eval(source: &str, _error_reporter: impl ErrorReporter) -> String {
     let mut parser = Parser::new(source);
-    let expr = parser.parse_expr().unwrap();
+    let expr = parser.parse();
 
-    format!("{}", interpret(&expr).unwrap())
+    match expr {
+        Some(expr) => format!("{}", interpret(&expr).unwrap()),
+        None => String::from("there was some error! boo"),
+    }
 }

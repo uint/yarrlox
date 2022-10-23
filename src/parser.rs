@@ -40,7 +40,14 @@ impl<'src> Parser<'src> {
         self.lexer.peek().is_none()
     }
 
-    pub fn parse_expr(&mut self) -> ParseResult<'src> {
+    pub fn parse(&mut self) -> Option<Expr<'src>> {
+        match self.parse_expr() {
+            Ok(expr) => Some(expr),
+            Err(_) => None,
+        }
+    }
+
+    fn parse_expr(&mut self) -> ParseResult<'src> {
         self.parse_binop(0)
     }
 
