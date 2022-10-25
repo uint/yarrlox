@@ -54,7 +54,7 @@ pub enum Token<'src> {
     // Literals.
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*")]
     Identifier(&'src str),
-    #[regex(r#""([^"\\]|\\.)*""#)]
+    #[regex(r#""([^"\\]|\\.)*""#, callback = trim_string)]
     StringLit(&'src str),
     #[regex(r#"[0-9]+(\.[0-9]+)?"#)]
     NumLit(&'src str),
@@ -115,4 +115,9 @@ fn skip_block_comment<'src>(lex: &mut logos::Lexer<'src, Token<'src>>) -> Filter
             Filter::Emit(())
         }
     }
+}
+
+fn trim_string<'src>(lex: &mut logos::Lexer<'src, Token<'src>>) -> &'src str {
+    let s = lex.slice();
+    &s[1..(s.len() - 1)]
 }
