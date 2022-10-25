@@ -19,7 +19,7 @@ macro_rules! impl_comparison {
     };
 }
 
-pub fn interpret<'src>(expr: &Expr<'src>) -> Result<Value<'src>, InterpretError> {
+pub fn interpret<'src>(expr: &Expr<'src>) -> Result<Value<'src>, InterpreterError> {
     use Value::*;
 
     Ok(match expr {
@@ -27,6 +27,8 @@ pub fn interpret<'src>(expr: &Expr<'src>) -> Result<Value<'src>, InterpretError>
             Literal::StringLit(StringLit(l)) => Value::string(*l),
             Literal::NumLit(NumLit(l)) => Num(l.parse().unwrap()),
             Literal::Identifier(_) => todo!(),
+            Literal::Nil => Value::Nil,
+            Literal::Bool(b) => Value::Bool(*b),
         },
         Expr::Binary(Binary { left, op, right }) => match op {
             BinaryOp::Add => match (interpret(left)?, interpret(right)?) {
@@ -50,7 +52,7 @@ pub fn interpret<'src>(expr: &Expr<'src>) -> Result<Value<'src>, InterpretError>
             UnaryOp::Negation => match interpret(right)? {
                 Num(n) => Num(-n),
                 v => {
-                    return Err(InterpretError::TypeError {
+                    return Err(InterpreterError::TypeError {
                         expected: &[Type::Num],
                         found: v.ty(),
                     })
@@ -73,7 +75,7 @@ fn is_equal(left: &Value, right: &Value) -> bool {
 }
 
 #[derive(thiserror::Error, Debug, Clone, PartialEq, Eq)]
-pub enum InterpretError {
+pub enum InterpreterError {
     #[error("expected one of these types: {expected:?}, found: {found}")]
     TypeError {
         expected: &'static [Type],

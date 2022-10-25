@@ -28,6 +28,8 @@ structstruck::strike! {
             StringLit(pub struct<'src>(pub &'src str)),
             NumLit(pub struct<'src>(pub &'src str)),
             Identifier(pub struct<'src>(pub &'src str)),
+            Nil,
+            Bool(bool),
         }),
         Unary(pub struct<'src> {
             pub op: pub enum UnaryOp {

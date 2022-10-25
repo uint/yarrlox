@@ -112,6 +112,9 @@ impl<'src> Parser<'src> {
             Token::NumLit(l) => Expr::Literal(Literal::NumLit(NumLit(l))),
             Token::StringLit(l) => Expr::Literal(Literal::StringLit(StringLit(l))),
             Token::Identifier(l) => Expr::Literal(Literal::Identifier(Identifier(l))),
+            Token::Nil => Expr::Literal(Literal::Nil),
+            Token::True => Expr::Literal(Literal::Bool(true)),
+            Token::False => Expr::Literal(Literal::Bool(false)),
             Token::LeftParen => self.parse_paren_expr()?,
             _ => Err(ParserError::UnexpectedToken(token))?,
         })
