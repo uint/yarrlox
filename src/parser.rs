@@ -145,7 +145,10 @@ impl<'src> Parser<'src> {
 
     /// Parses literals and groupings (parenthesized expressions)
     fn parse_atom(&mut self) -> ParseResult<'src> {
-        let token = self.lexer.next().unwrap();
+        let token = self
+            .lexer
+            .next()
+            .ok_or(ParserError::new(None, ParserErrorKind::UnexpectedEof))?;
         Ok(match token.token {
             Token::NumLit(l) => Expr::Literal(Literal::NumLit(NumLit(l))),
             Token::StringLit(l) => Expr::Literal(Literal::StringLit(StringLit(l))),
