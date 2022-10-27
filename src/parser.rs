@@ -3,6 +3,7 @@ use std::collections::VecDeque;
 use crate::ast::{
     Binary, BinaryOp, Expr, Grouping, Identifier, Literal, NumLit, StringLit, Unary, UnaryOp,
 };
+use crate::errors::Error;
 use crate::lexer::Lexer;
 use crate::token::{SpannedToken, Token};
 
@@ -17,6 +18,10 @@ impl<'src> Parser<'src> {
             errors: vec![],
             lexer: Lexer::new(src),
         }
+    }
+
+    pub fn errors(&self) -> &[ParserError<'src>] {
+        &self.errors
     }
 
     fn synchronize(&mut self) {
@@ -43,7 +48,10 @@ impl<'src> Parser<'src> {
     pub fn parse(&mut self) -> Option<Expr<'src>> {
         match self.parse_expr() {
             Ok(expr) => Some(expr),
-            Err(_) => None,
+            Err(e) => {
+                self.errors.push(e);
+                None
+            }
         }
     }
 
@@ -107,8 +115,8 @@ impl<'src> Parser<'src> {
 
     /// Parses literals and groupings (parenthesized expressions)
     fn parse_atom(&mut self) -> ParseResult<'src> {
-        let SpannedToken { token, .. } = self.lexer.next().unwrap();
-        Ok(match token {
+        let token = self.lexer.next().unwrap();
+        Ok(match token.token {
             Token::NumLit(l) => Expr::Literal(Literal::NumLit(NumLit(l))),
             Token::StringLit(l) => Expr::Literal(Literal::StringLit(StringLit(l))),
             Token::Identifier(l) => Expr::Literal(Literal::Identifier(Identifier(l))),
@@ -116,7 +124,7 @@ impl<'src> Parser<'src> {
             Token::True => Expr::Literal(Literal::Bool(true)),
             Token::False => Expr::Literal(Literal::Bool(false)),
             Token::LeftParen => self.parse_paren_expr()?,
-            _ => Err(ParserError::UnexpectedToken(token))?,
+            _ => Err(Error::new(token, ParserErrorKind::UnexpectedToken))?,
         })
     }
 
@@ -129,12 +137,18 @@ impl<'src> Parser<'src> {
     }
 
     fn expect(&mut self, expected: Token<'src>) -> ParseResult<'src, Token<'src>> {
-        let token = self.lexer.peek().ok_or(ParserError::UnexpectedEof)?;
+        let token = self
+            .lexer
+            .peek()
+            .ok_or(Error::new(None, ParserErrorKind::UnexpectedEof))?;
 
         if token == expected {
             Ok(self.lexer.next().unwrap().token)
         } else {
-            Err(ParserError::UnexpectedToken(self.lexer.peek().unwrap()))
+            Err(Error::new(
+                self.lexer.peek_spanned().unwrap(),
+                ParserErrorKind::UnexpectedToken,
+            ))
         }
     }
 
@@ -192,10 +206,12 @@ impl Precedence for BinaryOp {
 
 pub type ParseResult<'src, T = Expr<'src>> = Result<T, ParserError<'src>>;
 
+pub type ParserError<'src> = Error<'src, ParserErrorKind>;
+
 #[derive(Debug, PartialEq, Eq, Clone, thiserror::Error)]
-pub enum ParserError<'src> {
-    #[error("no rule expected token: {0:?}")]
-    UnexpectedToken(Token<'src>),
+pub enum ParserErrorKind {
+    #[error("no rule expected token")]
+    UnexpectedToken,
     #[error("unexpected end of file")]
     UnexpectedEof,
 }

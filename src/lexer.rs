@@ -20,6 +20,13 @@ impl<'src> Lexer<'src> {
     pub fn peek(&mut self) -> Option<Token<'src>> {
         self.inner.peek().map(|(token, _span)| *token)
     }
+
+    pub fn peek_spanned(&mut self) -> Option<SpannedToken<'src>> {
+        self.inner.peek().map(|(t, s)| SpannedToken {
+            token: *t,
+            span: s.clone(),
+        })
+    }
 }
 
 impl<'src> Iterator for Lexer<'src> {

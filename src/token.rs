@@ -2,6 +2,7 @@ use std::ops::Range;
 
 use logos::{Filter, Logos};
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SpannedToken<'src> {
     pub token: Token<'src>,
     pub span: Range<usize>,

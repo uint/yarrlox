@@ -10,12 +10,16 @@ mod parser;
 mod token;
 mod value;
 
-pub fn eval(source: &str, _error_reporter: impl ErrorReporter) -> String {
+pub fn eval(source: &str, error_reporter: impl ErrorReporter) -> String {
     let mut parser = Parser::new(source);
     let expr = parser.parse();
 
+    for e in parser.errors() {
+        error_reporter.report(source, e);
+    }
+
     match expr {
         Some(expr) => format!("{}", interpret(&expr).unwrap()),
-        None => String::from("there was some error! boo"),
+        None => String::new(),
     }
 }
