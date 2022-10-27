@@ -1,7 +1,8 @@
 use std::collections::VecDeque;
+use std::string::ParseError;
 
 use crate::ast::{
-    Binary, BinaryOp, Expr, Grouping, Identifier, Literal, NumLit, StringLit, Unary, UnaryOp,
+    Binary, BinaryOp, Expr, Grouping, Identifier, Literal, NumLit, Stmt, StringLit, Unary, UnaryOp,
 };
 use crate::errors::Error;
 use crate::lexer::Lexer;
@@ -45,14 +46,43 @@ impl<'src> Parser<'src> {
         self.lexer.peek().is_none()
     }
 
-    pub fn parse(&mut self) -> Option<Expr<'src>> {
-        match self.parse_expr() {
-            Ok(expr) => Some(expr),
-            Err(e) => {
-                self.errors.push(e);
-                None
+    pub fn parse(&mut self) -> Result<Vec<Stmt<'src>>, Vec<ParserError>> {
+        let mut stmts = Vec::new();
+        let mut errors = Vec::new();
+
+        while !self.is_at_end() {
+            match self.parse_stmt() {
+                Ok(stmt) => stmts.push(stmt),
+                Err(err) => errors.push(err),
             }
         }
+
+        if errors.is_empty() {
+            Ok(stmts)
+        } else {
+            Err(errors)
+        }
+    }
+
+    fn parse_stmt(&mut self) -> ParseResult<'src, Stmt<'src>> {
+        let stmt = match self.lexer.peek().unwrap() {
+            Token::Print => self.parse_print_stmt(),
+            _ => self.parse_expr_stmt(),
+        };
+
+        self.expect(Token::Semicolon)?;
+
+        stmt
+    }
+
+    fn parse_print_stmt(&mut self) -> ParseResult<'src, Stmt<'src>> {
+        self.lexer.next().unwrap();
+
+        Ok(Stmt::Print(self.parse_expr()?))
+    }
+
+    fn parse_expr_stmt(&mut self) -> ParseResult<'src, Stmt<'src>> {
+        Ok(Stmt::Expr(self.parse_expr()?))
     }
 
     fn parse_expr(&mut self) -> ParseResult<'src> {

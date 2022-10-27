@@ -1,9 +1,11 @@
-use crate::ast::{Binary, BinaryOp, Expr, Grouping, Literal, NumLit, StringLit, Unary, UnaryOp};
+use crate::ast::{
+    Binary, BinaryOp, Expr, Grouping, Literal, NumLit, Stmt, StringLit, Unary, UnaryOp,
+};
 use crate::value::{Type, Value};
 
 macro_rules! impl_arithmetic {
     ($left:tt $op:tt $right:tt) => {
-        match (interpret($left)?, interpret($right)?) {
+        match (interpret_expr($left)?, interpret_expr($right)?) {
             (Num($left), Num($right)) => Num($left $op $right),
             _ => panic!("oh noes"),
         }
@@ -12,14 +14,40 @@ macro_rules! impl_arithmetic {
 
 macro_rules! impl_comparison {
     ($left:tt $op:tt $right:tt) => {
-        match (interpret($left)?, interpret($right)?) {
+        match (interpret_expr($left)?, interpret_expr($right)?) {
             (Num($left), Num($right)) => Bool($left $op $right),
             _ => panic!("oh noes"),
         }
     };
 }
 
-pub fn interpret<'src>(expr: &Expr<'src>) -> Result<Value<'src>, InterpreterError> {
+pub fn interpret(stmts: &[Stmt]) -> Vec<InterpreterError> {
+    stmts
+        .iter()
+        .map(|s| execute(s))
+        .filter_map(Result::err)
+        .collect()
+}
+
+pub fn execute(stmt: &Stmt<'_>) -> Result<(), InterpreterError> {
+    match stmt {
+        Stmt::Expr(expr) => {
+            interpret_expr(expr)?;
+            ()
+        }
+        Stmt::Print(expr) => print(expr)?,
+    };
+
+    Ok(())
+}
+
+fn print(expr: &Expr<'_>) -> Result<(), InterpreterError> {
+    println!("{}", interpret_expr(expr)?);
+
+    Ok(())
+}
+
+pub fn interpret_expr<'src>(expr: &Expr<'src>) -> Result<Value<'src>, InterpreterError> {
     use Value::*;
 
     Ok(match expr {
@@ -31,7 +59,7 @@ pub fn interpret<'src>(expr: &Expr<'src>) -> Result<Value<'src>, InterpreterErro
             Literal::Bool(b) => Value::Bool(*b),
         },
         Expr::Binary(Binary { left, op, right }) => match op {
-            BinaryOp::Add => match (interpret(left)?, interpret(right)?) {
+            BinaryOp::Add => match (interpret_expr(left)?, interpret_expr(right)?) {
                 (Num(left), Num(right)) => Num(left + right),
                 (String(left), String(right)) => Value::string(format!("{}{}", left, right)),
                 _ => panic!("oh noes"),
@@ -43,13 +71,13 @@ pub fn interpret<'src>(expr: &Expr<'src>) -> Result<Value<'src>, InterpreterErro
             BinaryOp::Lte => impl_comparison!(left <= right),
             BinaryOp::Gt => impl_comparison!(left > right),
             BinaryOp::Gte => impl_comparison!(left >= right),
-            BinaryOp::Eq => Bool(is_equal(&interpret(left)?, &interpret(right)?)),
-            BinaryOp::NotEq => Bool(!is_equal(&interpret(left)?, &interpret(right)?)),
+            BinaryOp::Eq => Bool(is_equal(&interpret_expr(left)?, &interpret_expr(right)?)),
+            BinaryOp::NotEq => Bool(!is_equal(&interpret_expr(left)?, &interpret_expr(right)?)),
         },
-        Expr::Grouping(Grouping { expr }) => interpret(expr)?,
+        Expr::Grouping(Grouping { expr }) => interpret_expr(expr)?,
         Expr::Unary(Unary { op, right }) => match op {
-            UnaryOp::Not => Bool(!is_truthy(&interpret(right)?)),
-            UnaryOp::Negation => match interpret(right)? {
+            UnaryOp::Not => Bool(!is_truthy(&interpret_expr(right)?)),
+            UnaryOp::Negation => match interpret_expr(right)? {
                 Num(n) => Num(-n),
                 v => {
                     return Err(InterpreterError::TypeError {

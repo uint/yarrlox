@@ -39,10 +39,7 @@ fn error_handler(err: anyhow::Error) {
 
 fn run_script(path: impl AsRef<Path>) -> anyhow::Result<()> {
     let source = std::fs::read_to_string(path)?;
-    println!(
-        "{}",
-        yarrlox::eval(&source, yarrlox::errors::SimpleReporter)
-    );
+    yarrlox::eval(&source, yarrlox::errors::SimpleReporter);
 
     Ok(())
 }
@@ -59,7 +56,7 @@ fn run_repl() -> anyhow::Result<()> {
 
     for line in stdin {
         match line {
-            Ok(line) => println!("{}", yarrlox::eval(&line, yarrlox::errors::SimpleReporter)),
+            Ok(line) => yarrlox::eval(&line, yarrlox::errors::SimpleReporter),
             Err(e) => eprintln!("Error reading line: {}", e),
         }
         prompt()?;

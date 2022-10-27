@@ -43,3 +43,9 @@ structstruck::strike! {
         }),
     }
 }
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Stmt<'src> {
+    Expr(Expr<'src>),
+    Print(Expr<'src>),
+}

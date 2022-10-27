@@ -10,16 +10,19 @@ mod parser;
 mod token;
 mod value;
 
-pub fn eval(source: &str, error_reporter: impl ErrorReporter) -> String {
+pub fn eval(source: &str, error_reporter: impl ErrorReporter) {
     let mut parser = Parser::new(source);
-    let expr = parser.parse();
-
-    for e in parser.errors() {
-        error_reporter.report(source, e);
-    }
-
-    match expr {
-        Some(expr) => format!("{}", interpret(&expr).unwrap()),
-        None => String::new(),
+    match parser.parse() {
+        Ok(stmts) => {
+            for err in interpret(&stmts) {
+                println!("{}", err);
+            }
+        }
+        Err(errors) => {
+            println!("parsing failed!");
+            for err in errors {
+                error_reporter.report(source, &err);
+            }
+        }
     }
 }
