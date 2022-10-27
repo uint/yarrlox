@@ -9,20 +9,14 @@ use crate::lexer::Lexer;
 use crate::token::{SpannedToken, Token};
 
 pub struct Parser<'src> {
-    errors: Vec<ParserError<'src>>,
     lexer: Lexer<'src>,
 }
 
 impl<'src> Parser<'src> {
     pub fn new(src: &'src str) -> Self {
         Self {
-            errors: vec![],
             lexer: Lexer::new(src),
         }
-    }
-
-    pub fn errors(&self) -> &[ParserError<'src>] {
-        &self.errors
     }
 
     fn synchronize(&mut self) {
@@ -53,7 +47,10 @@ impl<'src> Parser<'src> {
         while !self.is_at_end() {
             match self.parse_stmt() {
                 Ok(stmt) => stmts.push(stmt),
-                Err(err) => errors.push(err),
+                Err(err) => {
+                    self.synchronize();
+                    errors.push(err)
+                }
             }
         }
 
