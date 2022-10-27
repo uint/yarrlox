@@ -7,7 +7,14 @@ macro_rules! impl_arithmetic {
     ($left:tt $op:tt $right:tt) => {
         match (interpret_expr($left)?, interpret_expr($right)?) {
             (Num($left), Num($right)) => Num($left $op $right),
-            _ => panic!("oh noes"),
+            (v, Num(_)) => return Err(InterpreterError::TypeError{
+                expected: &[Type::Num],
+                found: v.ty(),
+            }),
+            (_, v) => return Err(InterpreterError::TypeError{
+                expected: &[Type::Num],
+                found: v.ty(),
+            }),
         }
     };
 }
@@ -16,7 +23,14 @@ macro_rules! impl_comparison {
     ($left:tt $op:tt $right:tt) => {
         match (interpret_expr($left)?, interpret_expr($right)?) {
             (Num($left), Num($right)) => Bool($left $op $right),
-            _ => panic!("oh noes"),
+            (v, Num(_)) => return Err(InterpreterError::TypeError{
+                expected: &[Type::Num],
+                found: v.ty(),
+            }),
+            (_, v) => return Err(InterpreterError::TypeError{
+                expected: &[Type::Num],
+                found: v.ty(),
+            }),
         }
     };
 }
@@ -62,7 +76,24 @@ pub fn interpret_expr<'src>(expr: &Expr<'src>) -> Result<Value<'src>, Interprete
             BinaryOp::Add => match (interpret_expr(left)?, interpret_expr(right)?) {
                 (Num(left), Num(right)) => Num(left + right),
                 (String(left), String(right)) => Value::string(format!("{}{}", left, right)),
-                _ => panic!("oh noes"),
+                (Num(_), v) => {
+                    return Err(InterpreterError::TypeError {
+                        expected: &[Type::Num],
+                        found: v.ty(),
+                    })
+                }
+                (String(_), v) => {
+                    return Err(InterpreterError::TypeError {
+                        expected: &[Type::String],
+                        found: v.ty(),
+                    })
+                }
+                (v, _) => {
+                    return Err(InterpreterError::TypeError {
+                        expected: &[Type::Num, Type::String],
+                        found: v.ty(),
+                    })
+                }
             },
             BinaryOp::Sub => impl_arithmetic!(left - right),
             BinaryOp::Mul => impl_arithmetic!(left * right),
