@@ -1,7 +1,8 @@
 use crate::ast::{
-    Binary, BinaryOp, Expr, Grouping, Identifier, Literal, NumLit, Stmt, StringLit, Unary, UnaryOp,
+    Assign, Binary, BinaryOp, Expr, Grouping, Identifier, Literal, NumLit, Stmt, StringLit, Unary,
+    UnaryOp,
 };
-use crate::env::Env;
+use crate::env::{Env, EnvError};
 use crate::value::{Type, Value};
 
 macro_rules! impl_arithmetic {
@@ -85,6 +86,14 @@ impl<'v> Interpreter {
         use Value::*;
 
         Ok(match expr {
+            Expr::Assign(Assign {
+                name: Identifier(ident),
+                value,
+            }) => {
+                let value = self.interpret_expr(value)?;
+                self.env.assign(ident.to_string(), value.clone())?;
+                value
+            }
             Expr::Literal(l) => match l {
                 Literal::StringLit(StringLit(l)) => Value::string(*l),
                 Literal::NumLit(NumLit(l)) => Num(l.parse().unwrap()),
@@ -167,4 +176,6 @@ pub enum InterpreterError {
         expected: &'static [Type],
         found: Type,
     },
+    #[error("{0}")]
+    EnvError(#[from] EnvError),
 }

@@ -2,7 +2,8 @@ use std::collections::VecDeque;
 use std::string::ParseError;
 
 use crate::ast::{
-    Binary, BinaryOp, Expr, Grouping, Identifier, Literal, NumLit, Stmt, StringLit, Unary, UnaryOp,
+    Assign, Binary, BinaryOp, Expr, Grouping, Identifier, Literal, NumLit, Stmt, StringLit, Unary,
+    UnaryOp,
 };
 use crate::errors::Error;
 use crate::lexer::Lexer;
@@ -109,7 +110,26 @@ impl<'src> Parser<'src> {
     }
 
     fn parse_expr(&mut self) -> ParseResult<'src> {
-        self.parse_binop(0)
+        self.parse_assignment()
+    }
+
+    fn parse_assignment(&mut self) -> ParseResult<'src> {
+        let expr = self.parse_binop(0)?;
+
+        if let Ok(equals) = self.expect(Token::Equal) {
+            let value = self.parse_assignment()?;
+
+            if let Expr::Literal(Literal::Identifier(name)) = expr {
+                return Ok(Expr::Assign(Assign {
+                    name,
+                    value: Box::new(value),
+                }));
+            } else {
+                return Err(Error::new(equals, ParserErrorKind::InvalidLvalue));
+            }
+        }
+
+        Ok(expr)
     }
 
     /// Parses binary operations using precedence climbing. This is conceptually the
@@ -192,14 +212,14 @@ impl<'src> Parser<'src> {
         Ok(expr)
     }
 
-    fn expect(&mut self, expected: Token<'src>) -> ParseResult<'src, Token<'src>> {
+    fn expect(&mut self, expected: Token<'src>) -> ParseResult<'src, SpannedToken<'src>> {
         let token = self
             .lexer
             .peek()
             .ok_or(Error::new(None, ParserErrorKind::UnexpectedEof))?;
 
         if token == expected {
-            Ok(self.lexer.next().unwrap().token)
+            Ok(self.lexer.next().unwrap())
         } else {
             Err(Error::new(
                 self.lexer.peek_spanned().unwrap(),
@@ -270,6 +290,8 @@ pub enum ParserErrorKind {
     UnexpectedToken,
     #[error("unexpected end of file")]
     UnexpectedEof,
+    #[error("invalid l-value")]
+    InvalidLvalue,
 }
 
 #[cfg(test)]

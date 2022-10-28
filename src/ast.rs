@@ -8,6 +8,10 @@
 structstruck::strike! {
     #[strikethrough[derive(Clone, Debug, PartialEq)]]
     pub enum Expr<'src> {
+        Assign(pub struct<'src> {
+            pub name: Identifier<'src>,
+            pub value: Box<Expr<'src>>,
+        })
         Binary(pub struct<'src> {
              pub left: Box<Expr<'src>>,
              pub op: pub enum BinaryOp {
