@@ -1,11 +1,12 @@
 use crate::ast::{
-    Binary, BinaryOp, Expr, Grouping, Literal, NumLit, Stmt, StringLit, Unary, UnaryOp,
+    Binary, BinaryOp, Expr, Grouping, Identifier, Literal, NumLit, Stmt, StringLit, Unary, UnaryOp,
 };
+use crate::env::Env;
 use crate::value::{Type, Value};
 
 macro_rules! impl_arithmetic {
-    ($left:tt $op:tt $right:tt) => {
-        match (interpret_expr($left)?, interpret_expr($right)?) {
+    ($self:tt $left:tt $op:tt $right:tt) => {
+        match ($self.interpret_expr($left)?, $self.interpret_expr($right)?) {
             (Num($left), Num($right)) => Num($left $op $right),
             (v, Num(_)) => return Err(InterpreterError::TypeError{
                 expected: &[Type::Num],
@@ -20,8 +21,8 @@ macro_rules! impl_arithmetic {
 }
 
 macro_rules! impl_comparison {
-    ($left:tt $op:tt $right:tt) => {
-        match (interpret_expr($left)?, interpret_expr($right)?) {
+    ($self:tt $left:tt $op:tt $right:tt) => {
+        match ($self.interpret_expr($left)?, $self.interpret_expr($right)?) {
             (Num($left), Num($right)) => Bool($left $op $right),
             (v, Num(_)) => return Err(InterpreterError::TypeError{
                 expected: &[Type::Num],
@@ -35,90 +36,116 @@ macro_rules! impl_comparison {
     };
 }
 
-pub fn interpret(stmts: &[Stmt]) -> Vec<InterpreterError> {
-    stmts
-        .iter()
-        .map(|s| execute(s))
-        .filter_map(Result::err)
-        .collect()
+pub struct Interpreter {
+    env: Env,
 }
 
-pub fn execute(stmt: &Stmt<'_>) -> Result<(), InterpreterError> {
-    match stmt {
-        Stmt::Expr(expr) => {
-            interpret_expr(expr)?;
-            ()
-        }
-        Stmt::Print(expr) => print(expr)?,
-    };
+impl<'v> Interpreter {
+    pub fn new() -> Self {
+        Self { env: Env::new() }
+    }
 
-    Ok(())
-}
+    pub fn interpret(&mut self, stmts: &[Stmt]) -> Vec<InterpreterError> {
+        stmts
+            .iter()
+            .map(|s| self.execute(s))
+            .filter_map(Result::err)
+            .collect()
+    }
 
-fn print(expr: &Expr<'_>) -> Result<(), InterpreterError> {
-    println!("{}", interpret_expr(expr)?);
+    pub fn execute(&mut self, stmt: &Stmt) -> Result<(), InterpreterError> {
+        match stmt {
+            Stmt::Expr(expr) => {
+                self.interpret_expr(expr)?;
+                ()
+            }
+            Stmt::Print(expr) => self.print(expr)?,
+            Stmt::Var {
+                name: Identifier(name),
+                initializer,
+            } => {
+                let value = match initializer {
+                    Some(init) => self.interpret_expr(init)?,
+                    None => Value::Nil,
+                };
+                self.env.define(name.to_string(), value)
+            }
+        };
 
-    Ok(())
-}
+        Ok(())
+    }
 
-pub fn interpret_expr<'src>(expr: &Expr<'src>) -> Result<Value<'src>, InterpreterError> {
-    use Value::*;
+    fn print(&mut self, expr: &Expr<'v>) -> Result<(), InterpreterError> {
+        println!("{}", self.interpret_expr(expr)?);
 
-    Ok(match expr {
-        Expr::Literal(l) => match l {
-            Literal::StringLit(StringLit(l)) => Value::string(*l),
-            Literal::NumLit(NumLit(l)) => Num(l.parse().unwrap()),
-            Literal::Identifier(_) => todo!(),
-            Literal::Nil => Value::Nil,
-            Literal::Bool(b) => Value::Bool(*b),
-        },
-        Expr::Binary(Binary { left, op, right }) => match op {
-            BinaryOp::Add => match (interpret_expr(left)?, interpret_expr(right)?) {
-                (Num(left), Num(right)) => Num(left + right),
-                (String(left), String(right)) => Value::string(format!("{}{}", left, right)),
-                (Num(_), v) => {
-                    return Err(InterpreterError::TypeError {
-                        expected: &[Type::Num],
-                        found: v.ty(),
-                    })
-                }
-                (String(_), v) => {
-                    return Err(InterpreterError::TypeError {
-                        expected: &[Type::String],
-                        found: v.ty(),
-                    })
-                }
-                (v, _) => {
-                    return Err(InterpreterError::TypeError {
-                        expected: &[Type::Num, Type::String],
-                        found: v.ty(),
-                    })
-                }
+        Ok(())
+    }
+
+    pub fn interpret_expr(&mut self, expr: &Expr) -> Result<Value, InterpreterError> {
+        use Value::*;
+
+        Ok(match expr {
+            Expr::Literal(l) => match l {
+                Literal::StringLit(StringLit(l)) => Value::string(*l),
+                Literal::NumLit(NumLit(l)) => Num(l.parse().unwrap()),
+                Literal::Identifier(Identifier(ident)) => self.env.get(ident),
+                Literal::Nil => Value::Nil,
+                Literal::Bool(b) => Value::Bool(*b),
             },
-            BinaryOp::Sub => impl_arithmetic!(left - right),
-            BinaryOp::Mul => impl_arithmetic!(left * right),
-            BinaryOp::Div => impl_arithmetic!(left / right),
-            BinaryOp::Lt => impl_comparison!(left < right),
-            BinaryOp::Lte => impl_comparison!(left <= right),
-            BinaryOp::Gt => impl_comparison!(left > right),
-            BinaryOp::Gte => impl_comparison!(left >= right),
-            BinaryOp::Eq => Bool(is_equal(&interpret_expr(left)?, &interpret_expr(right)?)),
-            BinaryOp::NotEq => Bool(!is_equal(&interpret_expr(left)?, &interpret_expr(right)?)),
-        },
-        Expr::Grouping(Grouping { expr }) => interpret_expr(expr)?,
-        Expr::Unary(Unary { op, right }) => match op {
-            UnaryOp::Not => Bool(!is_truthy(&interpret_expr(right)?)),
-            UnaryOp::Negation => match interpret_expr(right)? {
-                Num(n) => Num(-n),
-                v => {
-                    return Err(InterpreterError::TypeError {
-                        expected: &[Type::Num],
-                        found: v.ty(),
-                    })
-                }
+            Expr::Binary(Binary { left, op, right }) => match op {
+                BinaryOp::Add => match (self.interpret_expr(left)?, self.interpret_expr(right)?) {
+                    (Num(left), Num(right)) => Num(left + right),
+                    (String(left), String(right)) => Value::string(format!("{}{}", left, right)),
+                    (Num(_), v) => {
+                        return Err(InterpreterError::TypeError {
+                            expected: &[Type::Num],
+                            found: v.ty(),
+                        })
+                    }
+                    (String(_), v) => {
+                        return Err(InterpreterError::TypeError {
+                            expected: &[Type::String],
+                            found: v.ty(),
+                        })
+                    }
+                    (v, _) => {
+                        return Err(InterpreterError::TypeError {
+                            expected: &[Type::Num, Type::String],
+                            found: v.ty(),
+                        })
+                    }
+                },
+                BinaryOp::Sub => impl_arithmetic!(self left - right),
+                BinaryOp::Mul => impl_arithmetic!(self left * right),
+                BinaryOp::Div => impl_arithmetic!(self left / right),
+                BinaryOp::Lt => impl_comparison!(self left < right),
+                BinaryOp::Lte => impl_comparison!(self left <= right),
+                BinaryOp::Gt => impl_comparison!(self left > right),
+                BinaryOp::Gte => impl_comparison!(self left >= right),
+                BinaryOp::Eq => Bool(is_equal(
+                    &self.interpret_expr(left)?,
+                    &self.interpret_expr(right)?,
+                )),
+                BinaryOp::NotEq => Bool(!is_equal(
+                    &self.interpret_expr(left)?,
+                    &self.interpret_expr(right)?,
+                )),
             },
-        },
-    })
+            Expr::Grouping(Grouping { expr }) => self.interpret_expr(expr)?,
+            Expr::Unary(Unary { op, right }) => match op {
+                UnaryOp::Not => Bool(!is_truthy(&self.interpret_expr(right)?)),
+                UnaryOp::Negation => match self.interpret_expr(right)? {
+                    Num(n) => Num(-n),
+                    v => {
+                        return Err(InterpreterError::TypeError {
+                            expected: &[Type::Num],
+                            found: v.ty(),
+                        })
+                    }
+                },
+            },
+        })
+    }
 }
 
 fn is_truthy(val: &Value) -> bool {

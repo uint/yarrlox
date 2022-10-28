@@ -48,4 +48,8 @@ structstruck::strike! {
 pub enum Stmt<'src> {
     Expr(Expr<'src>),
     Print(Expr<'src>),
+    Var {
+        name: Identifier<'src>,
+        initializer: Option<Expr<'src>>,
+    },
 }

@@ -1,8 +1,8 @@
-use std::{borrow::Cow, fmt::Display};
+use std::fmt::Display;
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum Value<'v> {
-    String(Cow<'v, str>),
+pub enum Value {
+    String(String),
     Num(f64),
     Bool(bool),
     Nil,
@@ -16,8 +16,8 @@ pub enum Type {
     Nil,
 }
 
-impl<'v> Value<'v> {
-    pub fn string(s: impl Into<Cow<'v, str>>) -> Self {
+impl Value {
+    pub fn string(s: impl Into<String>) -> Self {
         Self::String(s.into())
     }
 
@@ -31,7 +31,7 @@ impl<'v> Value<'v> {
     }
 }
 
-impl Display for Value<'_> {
+impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Value::String(s) => write!(f, "\"{}\"", s),

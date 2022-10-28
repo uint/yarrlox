@@ -46,7 +46,7 @@ impl<'src> Parser<'src> {
 
         while !self.is_at_end() {
             match self.parse_stmt() {
-                Ok(stmt) => stmts.push(stmt),
+                Ok(decl) => stmts.push(decl),
                 Err(err) => {
                     self.synchronize();
                     errors.push(err)
@@ -62,14 +62,40 @@ impl<'src> Parser<'src> {
     }
 
     fn parse_stmt(&mut self) -> ParseResult<'src, Stmt<'src>> {
-        let stmt = match self.lexer.peek().unwrap() {
-            Token::Print => self.parse_print_stmt(),
-            _ => self.parse_expr_stmt(),
+        let res = match self.lexer.peek().unwrap() {
+            Token::Var => self.parse_var_decl()?,
+            _ => self.parse_stmt_sub()?,
         };
 
         self.expect(Token::Semicolon)?;
 
-        stmt
+        Ok(res)
+    }
+
+    fn parse_var_decl(&mut self) -> ParseResult<'src, Stmt<'src>> {
+        self.lexer.next().unwrap();
+
+        match self.lexer.next() {
+            Some(SpannedToken {
+                token: Token::Identifier(ident),
+                ..
+            }) => Ok(Stmt::Var {
+                name: Identifier(ident),
+                initializer: if self.expect(Token::Equal).is_ok() {
+                    Some(self.parse_expr()?)
+                } else {
+                    None
+                },
+            }),
+            token => Err(Error::new(token, ParserErrorKind::UnexpectedToken)),
+        }
+    }
+
+    fn parse_stmt_sub(&mut self) -> ParseResult<'src, Stmt<'src>> {
+        match self.lexer.peek().unwrap() {
+            Token::Print => self.parse_print_stmt(),
+            _ => self.parse_expr_stmt(),
+        }
     }
 
     fn parse_print_stmt(&mut self) -> ParseResult<'src, Stmt<'src>> {
