@@ -28,7 +28,12 @@ impl ErrorReporter for SimpleReporter {
         // TODO: calculate the line number at least
         // bonus points: print a source code fragment and point to the problematic span
         match &e.token {
-            Some(token) => eprintln!("Error in span {:?}: {}", token.span, e.error_kind),
+            Some(token) => {
+                eprintln!(
+                    "Error in span {:?}, token {:?}: {}",
+                    token.span, token.token, e.error_kind
+                )
+            }
             None => eprintln!("Error: {}", e.error_kind),
         }
     }

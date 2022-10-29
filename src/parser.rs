@@ -98,12 +98,62 @@ impl<'src> Parser<'src> {
     // `statement` in the book
     fn parse_stmt_sub(&mut self) -> ParseResult<'src, Stmt<'src>> {
         match self.lexer.peek().unwrap() {
+            Token::For => self.parse_for_loop(),
             Token::If => self.parse_if(),
             Token::Print => self.parse_print_stmt(),
             Token::While => self.parse_while_loop(),
             Token::LeftBrace => self.parse_block(),
             _ => self.parse_expr_stmt(),
         }
+    }
+
+    fn parse_for_loop(&mut self) -> ParseResult<'src, Stmt<'src>> {
+        self.lexer.next().unwrap();
+
+        self.expect(Token::LeftParen)?;
+
+        let initializer = match self.lexer.peek() {
+            Some(Token::Semicolon) => {
+                self.lexer.next().unwrap();
+                None
+            }
+            Some(Token::Var) => Some(self.parse_var_decl()?),
+            Some(_) => Some(self.parse_expr_stmt()?),
+            None => return Err(Error::new(None, ParserErrorKind::UnexpectedEof)),
+        };
+
+        let condition = match self.lexer.peek() {
+            Some(Token::Semicolon) => Expr::Literal(Literal::Bool(true)),
+            Some(_) => self.parse_expr()?,
+            None => return Err(Error::new(None, ParserErrorKind::UnexpectedEof)),
+        };
+
+        self.expect(Token::Semicolon)?;
+
+        let increment = match self.lexer.peek() {
+            Some(Token::RightParen) => None,
+            Some(_) => Some(self.parse_expr()?),
+            None => return Err(Error::new(None, ParserErrorKind::UnexpectedEof)),
+        };
+
+        self.expect(Token::RightParen)?;
+
+        let mut body = self.parse_stmt_sub()?;
+
+        if let Some(inc) = increment {
+            body = Stmt::Block(vec![body, Stmt::Expr(inc)]);
+        }
+
+        body = Stmt::While {
+            condition,
+            body: body.into(),
+        };
+
+        if let Some(init) = initializer {
+            body = Stmt::Block(vec![init, body]);
+        }
+
+        Ok(body)
     }
 
     fn parse_if(&mut self) -> ParseResult<'src, Stmt<'src>> {
