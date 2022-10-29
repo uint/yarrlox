@@ -68,15 +68,13 @@ impl<'src> Parser<'src> {
             _ => self.parse_stmt_sub()?,
         };
 
-        self.expect(Token::Semicolon)?;
-
         Ok(res)
     }
 
     fn parse_var_decl(&mut self) -> ParseResult<'src, Stmt<'src>> {
         self.lexer.next().unwrap();
 
-        match self.lexer.next() {
+        let res = match self.lexer.next() {
             Some(SpannedToken {
                 token: Token::Identifier(ident),
                 ..
@@ -89,24 +87,51 @@ impl<'src> Parser<'src> {
                 },
             }),
             token => Err(Error::new(token, ParserErrorKind::UnexpectedToken)),
-        }
+        };
+
+        self.expect(Token::Semicolon)?;
+
+        res
     }
 
     fn parse_stmt_sub(&mut self) -> ParseResult<'src, Stmt<'src>> {
         match self.lexer.peek().unwrap() {
             Token::Print => self.parse_print_stmt(),
+            Token::LeftBrace => self.parse_block(),
             _ => self.parse_expr_stmt(),
         }
     }
 
     fn parse_print_stmt(&mut self) -> ParseResult<'src, Stmt<'src>> {
         self.lexer.next().unwrap();
+        let res = self.parse_expr()?;
 
-        Ok(Stmt::Print(self.parse_expr()?))
+        self.expect(Token::Semicolon)?;
+
+        Ok(Stmt::Print(res))
+    }
+
+    fn parse_block(&mut self) -> ParseResult<'src, Stmt<'src>> {
+        self.lexer.next().unwrap();
+
+        let mut stmts = vec![];
+        let mut i = 0;
+        while !matches!(self.lexer.peek(), Some(Token::RightBrace) | None) {
+            i += 1;
+            stmts.push(self.parse_stmt()?);
+        }
+
+        self.lexer
+            .next()
+            .ok_or_else(|| Error::new(None, ParserErrorKind::UnexpectedEof))?;
+
+        Ok(Stmt::Block(stmts))
     }
 
     fn parse_expr_stmt(&mut self) -> ParseResult<'src, Stmt<'src>> {
-        Ok(Stmt::Expr(self.parse_expr()?))
+        let res = self.parse_expr()?;
+        self.expect(Token::Semicolon)?;
+        Ok(Stmt::Expr(res))
     }
 
     fn parse_expr(&mut self) -> ParseResult<'src> {

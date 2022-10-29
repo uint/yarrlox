@@ -50,6 +50,7 @@ structstruck::strike! {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Stmt<'src> {
+    Block(Vec<Stmt<'src>>),
     Expr(Expr<'src>),
     Print(Expr<'src>),
     Var {

@@ -1,35 +1,67 @@
-use std::collections::HashMap;
+use std::collections::{vec_deque, HashMap, VecDeque};
 
 use crate::value::Value;
 
-#[derive(Default)]
 pub struct Env {
-    values: HashMap<String, Value>,
+    /// This is used as a stack. The front of the stack is the current (innermost, leaf) env.
+    /// The reason to diverge from the book is to avoid trouble with mutable references
+    /// and having Envs be a recursively defined type.
+    scopes: VecDeque<HashMap<String, Value>>,
 }
 
 impl Env {
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            scopes: [HashMap::new()].into(),
+        }
+    }
+
+    pub fn child(&mut self) {
+        self.scopes.push_front(HashMap::new());
+    }
+
+    pub fn pop(&mut self) {
+        #[cfg(debug_assertions)]
+        assert!(
+            self.scopes.len() >= 2,
+            "attempting to remove root environment"
+        );
+        self.scopes.pop_front();
+    }
+
+    fn root(&mut self) -> &mut HashMap<String, Value> {
+        let last = self.scopes.len() - 1;
+        &mut self.scopes[last]
+    }
+
+    fn current(&mut self) -> &mut HashMap<String, Value> {
+        &mut self.scopes[0]
     }
 
     pub fn define(&mut self, name: String, value: Value) {
-        self.values.insert(name, value);
+        self.current().insert(name, value);
     }
 
     pub fn get(&self, name: &str) -> Value {
-        self.values
-            .get(name)
-            .map(Clone::clone)
-            .unwrap_or(Value::Nil)
+        for scope in self.scopes.iter() {
+            if let Some(v) = scope.get(name) {
+                return v.clone();
+            }
+        }
+
+        Value::Nil
     }
 
     pub fn assign(&mut self, name: String, value: Value) -> Result<(), EnvError> {
-        if self.values.contains_key(&name) {
-            self.values.insert(name, value);
-            Ok(())
-        } else {
-            Err(EnvError::AssignNonexistent(name))
+        for scope in self.scopes.iter_mut() {
+            #[allow(clippy::map_entry)]
+            if scope.contains_key(&name) {
+                scope.insert(name, value);
+                return Ok(());
+            }
         }
+
+        Err(EnvError::AssignNonexistent(name))
     }
 }
 

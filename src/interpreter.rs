@@ -58,7 +58,6 @@ impl<'v> Interpreter {
         match stmt {
             Stmt::Expr(expr) => {
                 self.interpret_expr(expr)?;
-                ()
             }
             Stmt::Print(expr) => self.print(expr)?,
             Stmt::Var {
@@ -71,7 +70,20 @@ impl<'v> Interpreter {
                 };
                 self.env.define(name.to_string(), value)
             }
+            Stmt::Block(stmts) => self.execute_block(stmts)?,
         };
+
+        Ok(())
+    }
+
+    fn execute_block(&mut self, stmts: &[Stmt]) -> Result<(), InterpreterError> {
+        self.env.child();
+
+        for stmt in stmts {
+            self.execute(stmt);
+        }
+
+        self.env.pop();
 
         Ok(())
     }
@@ -124,13 +136,13 @@ impl<'v> Interpreter {
                         })
                     }
                 },
-                BinaryOp::Sub => impl_arithmetic!(self left - right),
-                BinaryOp::Mul => impl_arithmetic!(self left * right),
-                BinaryOp::Div => impl_arithmetic!(self left / right),
-                BinaryOp::Lt => impl_comparison!(self left < right),
-                BinaryOp::Lte => impl_comparison!(self left <= right),
-                BinaryOp::Gt => impl_comparison!(self left > right),
-                BinaryOp::Gte => impl_comparison!(self left >= right),
+                BinaryOp::Sub => impl_arithmetic!(self  left - right),
+                BinaryOp::Mul => impl_arithmetic!(self  left * right),
+                BinaryOp::Div => impl_arithmetic!(self  left / right),
+                BinaryOp::Lt => impl_comparison!(self  left < right),
+                BinaryOp::Lte => impl_comparison!(self  left <= right),
+                BinaryOp::Gt => impl_comparison!(self  left > right),
+                BinaryOp::Gte => impl_comparison!(self  left >= right),
                 BinaryOp::Eq => Bool(is_equal(
                     &self.interpret_expr(left)?,
                     &self.interpret_expr(right)?,
