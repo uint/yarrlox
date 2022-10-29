@@ -62,6 +62,7 @@ impl<'src> Parser<'src> {
         }
     }
 
+    // `declaration` in the book
     fn parse_stmt(&mut self) -> ParseResult<'src, Stmt<'src>> {
         let res = match self.lexer.peek().unwrap() {
             Token::Var => self.parse_var_decl()?,
@@ -94,12 +95,35 @@ impl<'src> Parser<'src> {
         res
     }
 
+    // `statement` in the book
     fn parse_stmt_sub(&mut self) -> ParseResult<'src, Stmt<'src>> {
         match self.lexer.peek().unwrap() {
+            Token::If => self.parse_if(),
             Token::Print => self.parse_print_stmt(),
             Token::LeftBrace => self.parse_block(),
             _ => self.parse_expr_stmt(),
         }
+    }
+
+    fn parse_if(&mut self) -> ParseResult<'src, Stmt<'src>> {
+        self.lexer.next().unwrap();
+
+        self.expect(Token::LeftParen)?;
+        let condition = self.parse_expr()?;
+        self.expect(Token::RightParen)?;
+
+        let then_branch = Box::new(self.parse_stmt_sub()?);
+        let else_branch = if self.expect(Token::Else).is_ok() {
+            Some(Box::new(self.parse_stmt_sub()?))
+        } else {
+            None
+        };
+
+        Ok(Stmt::If {
+            condition,
+            then_branch,
+            else_branch,
+        })
     }
 
     fn parse_print_stmt(&mut self) -> ParseResult<'src, Stmt<'src>> {

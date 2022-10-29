@@ -52,6 +52,11 @@ structstruck::strike! {
 pub enum Stmt<'src> {
     Block(Vec<Stmt<'src>>),
     Expr(Expr<'src>),
+    If {
+        condition: Expr<'src>,
+        then_branch: Box<Stmt<'src>>,
+        else_branch: Option<Box<Stmt<'src>>>,
+    },
     Print(Expr<'src>),
     Var {
         name: Identifier<'src>,

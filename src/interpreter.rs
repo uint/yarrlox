@@ -71,6 +71,17 @@ impl<'v> Interpreter {
                 self.env.define(name.to_string(), value)
             }
             Stmt::Block(stmts) => self.execute_block(stmts)?,
+            Stmt::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                if is_truthy(&self.interpret_expr(condition)?) {
+                    self.execute(then_branch)?;
+                } else if let Some(else_branch) = else_branch {
+                    self.execute(else_branch)?;
+                }
+            }
         };
 
         Ok(())
@@ -80,7 +91,7 @@ impl<'v> Interpreter {
         self.env.child();
 
         for stmt in stmts {
-            self.execute(stmt);
+            self.execute(stmt)?;
         }
 
         self.env.pop();
