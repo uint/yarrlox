@@ -64,4 +64,8 @@ pub enum Stmt<'src> {
         name: Identifier<'src>,
         initializer: Option<Expr<'src>>,
     },
+    While {
+        condition: Expr<'src>,
+        body: Box<Stmt<'src>>,
+    },
 }

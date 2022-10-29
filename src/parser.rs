@@ -100,6 +100,7 @@ impl<'src> Parser<'src> {
         match self.lexer.peek().unwrap() {
             Token::If => self.parse_if(),
             Token::Print => self.parse_print_stmt(),
+            Token::While => self.parse_while_loop(),
             Token::LeftBrace => self.parse_block(),
             _ => self.parse_expr_stmt(),
         }
@@ -124,6 +125,18 @@ impl<'src> Parser<'src> {
             then_branch,
             else_branch,
         })
+    }
+
+    fn parse_while_loop(&mut self) -> ParseResult<'src, Stmt<'src>> {
+        self.lexer.next().unwrap();
+
+        self.expect(Token::LeftParen)?;
+        let condition = self.parse_expr()?;
+        self.expect(Token::RightParen)?;
+
+        let body = Box::new(self.parse_stmt_sub()?);
+
+        Ok(Stmt::While { condition, body })
     }
 
     fn parse_print_stmt(&mut self) -> ParseResult<'src, Stmt<'src>> {
