@@ -289,6 +289,8 @@ impl<'src> Parser<'src> {
             Some(Token::LessEqual) => Some(BinaryOp::Lte),
             Some(Token::EqualEqual) => Some(BinaryOp::Eq),
             Some(Token::BangEqual) => Some(BinaryOp::NotEq),
+            Some(Token::Or) => Some(BinaryOp::LogicOr),
+            Some(Token::And) => Some(BinaryOp::LogicAnd),
             _ => None,
         }
     }
@@ -315,16 +317,18 @@ trait Precedence {
 impl Precedence for BinaryOp {
     fn prec_assoc(&self) -> (u32, Assoc) {
         match self {
-            BinaryOp::Eq => (0, Assoc::Left),
-            BinaryOp::NotEq => (0, Assoc::Left),
-            BinaryOp::Gt => (1, Assoc::Left),
-            BinaryOp::Lt => (1, Assoc::Left),
-            BinaryOp::Gte => (1, Assoc::Left),
-            BinaryOp::Lte => (1, Assoc::Left),
-            BinaryOp::Add => (2, Assoc::Left),
-            BinaryOp::Sub => (2, Assoc::Left),
-            BinaryOp::Mul => (3, Assoc::Left),
-            BinaryOp::Div => (3, Assoc::Left),
+            BinaryOp::LogicOr => (0, Assoc::Left),
+            BinaryOp::LogicAnd => (1, Assoc::Left),
+            BinaryOp::Eq => (2, Assoc::Left),
+            BinaryOp::NotEq => (2, Assoc::Left),
+            BinaryOp::Gt => (3, Assoc::Left),
+            BinaryOp::Lt => (3, Assoc::Left),
+            BinaryOp::Gte => (3, Assoc::Left),
+            BinaryOp::Lte => (3, Assoc::Left),
+            BinaryOp::Add => (4, Assoc::Left),
+            BinaryOp::Sub => (4, Assoc::Left),
+            BinaryOp::Mul => (5, Assoc::Left),
+            BinaryOp::Div => (5, Assoc::Left),
         }
     }
 }

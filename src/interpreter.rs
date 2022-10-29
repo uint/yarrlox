@@ -105,6 +105,20 @@ impl<'v> Interpreter {
         Ok(())
     }
 
+    fn eval_logic(
+        &mut self,
+        is_or: bool,
+        left: &Expr,
+        right: &Expr,
+    ) -> Result<Value, InterpreterError> {
+        let left = self.interpret_expr(left)?;
+
+        match (is_or, is_truthy(&left)) {
+            (false, false) | (true, true) => Ok(left),
+            _ => self.interpret_expr(right),
+        }
+    }
+
     pub fn interpret_expr(&mut self, expr: &Expr) -> Result<Value, InterpreterError> {
         use Value::*;
 
@@ -125,6 +139,8 @@ impl<'v> Interpreter {
                 Literal::Bool(b) => Value::Bool(*b),
             },
             Expr::Binary(Binary { left, op, right }) => match op {
+                BinaryOp::LogicOr => self.eval_logic(true, left, right)?,
+                BinaryOp::LogicAnd => self.eval_logic(false, left, right)?,
                 BinaryOp::Add => match (self.interpret_expr(left)?, self.interpret_expr(right)?) {
                     (Num(left), Num(right)) => Num(left + right),
                     (String(left), String(right)) => Value::string(format!("{}{}", left, right)),
