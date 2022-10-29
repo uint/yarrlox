@@ -5,6 +5,8 @@
 // to implement the visitor pattern, but that means more boilerplate and less
 // idiomatic code. I didn't find enough justification for using the visitor pattern.
 
+use crate::token::SpannedToken;
+
 structstruck::strike! {
     #[strikethrough[derive(Clone, Debug, PartialEq)]]
     pub enum Expr<'src> {
@@ -46,6 +48,11 @@ structstruck::strike! {
         }),
         Grouping(pub struct<'src> {
             pub expr: Box<Expr<'src>>,
+        }),
+        Call(pub struct<'src> {
+            pub callee: Box<Expr<'src>>,
+            pub paren: SpannedToken<'src>,
+            pub args: Vec<Expr<'src>>,
         }),
     }
 }

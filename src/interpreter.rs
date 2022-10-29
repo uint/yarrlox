@@ -1,7 +1,4 @@
-use crate::ast::{
-    Assign, Binary, BinaryOp, Expr, Grouping, Identifier, Literal, NumLit, Stmt, StringLit, Unary,
-    UnaryOp,
-};
+use crate::ast::*;
 use crate::env::{Env, EnvError};
 use crate::parser::{ParserError, ParserErrorKind};
 use crate::value::{Type, Value};
@@ -208,7 +205,23 @@ impl<'v> Interpreter {
                     }
                 },
             },
+            Expr::Call(c) => self.interpret_call(c)?,
         })
+    }
+
+    fn interpret_call(
+        &mut self,
+        Call { callee, args, .. }: &Call,
+    ) -> Result<Value, InterpreterError> {
+        let callee = self.interpret_expr(callee)?;
+
+        let args: Vec<_> = args
+            .iter()
+            .map(|arg| self.interpret_expr(arg))
+            .collect::<Result<_, _>>()?;
+
+        // call the thing here
+        Ok(todo!())
     }
 }
 

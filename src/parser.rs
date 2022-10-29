@@ -1,10 +1,6 @@
 use std::collections::VecDeque;
-use std::string::ParseError;
 
-use crate::ast::{
-    Assign, Binary, BinaryOp, Expr, Grouping, Identifier, Literal, NumLit, Stmt, StringLit, Unary,
-    UnaryOp,
-};
+use crate::ast::*;
 use crate::errors::Error;
 use crate::lexer::Lexer;
 use crate::token::{SpannedToken, Token};
@@ -211,9 +207,7 @@ impl<'src> Parser<'src> {
         self.lexer.next().unwrap();
 
         let mut stmts = vec![];
-        let mut i = 0;
         while !matches!(self.lexer.peek(), Some(Token::RightBrace) | None) {
-            i += 1;
             stmts.push(self.parse_stmt()?);
         }
 
@@ -309,7 +303,7 @@ impl<'src> Parser<'src> {
             ops.push_front(op);
         }
 
-        let mut expr = self.parse_atom()?;
+        let mut expr = self.parse_call()?;
 
         for op in ops.into_iter() {
             expr = Expr::Unary(Unary {
@@ -321,12 +315,55 @@ impl<'src> Parser<'src> {
         Ok(expr)
     }
 
+    fn parse_call(&mut self) -> ParseResult<'src> {
+        let mut expr = self.parse_atom()?;
+
+        loop {
+            if self.expect(Token::LeftParen).is_ok() {
+                expr = self.finish_call(expr)?;
+            } else {
+                break;
+            }
+        }
+
+        Ok(expr)
+    }
+
+    fn finish_call(&mut self, callee: Expr<'src>) -> ParseResult<'src> {
+        let mut args = vec![];
+        if self
+            .lexer
+            .peek()
+            .ok_or_else(|| Error::new(None, ParserErrorKind::UnexpectedEof))?
+            != Token::RightParen
+        {
+            while {
+                if args.len() >= 2 {
+                    return Err(Error::new(
+                        self.lexer.peek_spanned().unwrap(),
+                        ParserErrorKind::TooManyArgs,
+                    ));
+                }
+                args.push(self.parse_expr()?);
+                self.expect(Token::Comma).is_ok()
+            } {}
+        }
+
+        let paren = self.expect(Token::RightParen)?;
+
+        Ok(Expr::Call(Call {
+            args,
+            callee: Box::new(callee),
+            paren,
+        }))
+    }
+
     /// Parses literals and groupings (parenthesized expressions)
     fn parse_atom(&mut self) -> ParseResult<'src> {
         let token = self
             .lexer
             .next()
-            .ok_or(ParserError::new(None, ParserErrorKind::UnexpectedEof))?;
+            .ok_or_else(|| ParserError::new(None, ParserErrorKind::UnexpectedEof))?;
         Ok(match token.token {
             Token::NumLit(l) => Expr::Literal(Literal::NumLit(NumLit(l))),
             Token::StringLit(l) => Expr::Literal(Literal::StringLit(StringLit(l))),
@@ -433,6 +470,8 @@ pub enum ParserErrorKind {
     InvalidLvalue,
     #[error("trying to use `break` outside any loop")]
     BreakOutsideLoop,
+    #[error("a function call can only accept up to 255 args")]
+    TooManyArgs,
 }
 
 #[cfg(test)]
