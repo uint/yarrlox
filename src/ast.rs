@@ -68,4 +68,5 @@ pub enum Stmt<'src> {
         condition: Expr<'src>,
         body: Box<Stmt<'src>>,
     },
+    Break,
 }

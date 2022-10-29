@@ -11,12 +11,14 @@ use crate::token::{SpannedToken, Token};
 
 pub struct Parser<'src> {
     lexer: Lexer<'src>,
+    loop_depth: u32,
 }
 
 impl<'src> Parser<'src> {
     pub fn new(src: &'src str) -> Self {
         Self {
             lexer: Lexer::new(src),
+            loop_depth: 0,
         }
     }
 
@@ -103,6 +105,7 @@ impl<'src> Parser<'src> {
             Token::Print => self.parse_print_stmt(),
             Token::While => self.parse_while_loop(),
             Token::LeftBrace => self.parse_block(),
+            Token::Break => self.parse_break(),
             _ => self.parse_expr_stmt(),
         }
     }
@@ -138,7 +141,10 @@ impl<'src> Parser<'src> {
 
         self.expect(Token::RightParen)?;
 
-        let mut body = self.parse_stmt_sub()?;
+        self.loop_depth += 1;
+        let body = self.parse_stmt_sub();
+        self.loop_depth -= 1;
+        let mut body = body?;
 
         if let Some(inc) = increment {
             body = Stmt::Block(vec![body, Stmt::Expr(inc)]);
@@ -184,7 +190,10 @@ impl<'src> Parser<'src> {
         let condition = self.parse_expr()?;
         self.expect(Token::RightParen)?;
 
-        let body = Box::new(self.parse_stmt_sub()?);
+        self.loop_depth += 1;
+        let body = self.parse_stmt_sub();
+        self.loop_depth -= 1;
+        let body = Box::new(body?);
 
         Ok(Stmt::While { condition, body })
     }
@@ -213,6 +222,20 @@ impl<'src> Parser<'src> {
             .ok_or_else(|| Error::new(None, ParserErrorKind::UnexpectedEof))?;
 
         Ok(Stmt::Block(stmts))
+    }
+
+    fn parse_break(&mut self) -> ParseResult<'src, Stmt<'src>> {
+        let break_token = self.lexer.next().unwrap();
+
+        self.expect(Token::Semicolon)?;
+
+        match self.loop_depth {
+            0 => Err(Error::new(
+                Some(break_token),
+                ParserErrorKind::BreakOutsideLoop,
+            )),
+            _ => Ok(Stmt::Break),
+        }
     }
 
     fn parse_expr_stmt(&mut self) -> ParseResult<'src, Stmt<'src>> {
@@ -408,6 +431,8 @@ pub enum ParserErrorKind {
     UnexpectedEof,
     #[error("invalid l-value")]
     InvalidLvalue,
+    #[error("trying to use `break` outside any loop")]
+    BreakOutsideLoop,
 }
 
 #[cfg(test)]

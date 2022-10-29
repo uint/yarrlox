@@ -3,6 +3,7 @@ use crate::ast::{
     UnaryOp,
 };
 use crate::env::{Env, EnvError};
+use crate::parser::{ParserError, ParserErrorKind};
 use crate::value::{Type, Value};
 
 macro_rules! impl_arithmetic {
@@ -39,6 +40,11 @@ macro_rules! impl_comparison {
 
 pub struct Interpreter {
     env: Env,
+}
+
+pub enum ExecResult {
+    Nothing,
+    LoopUnwind,
 }
 
 impl<'v> Interpreter {
@@ -84,9 +90,14 @@ impl<'v> Interpreter {
             }
             Stmt::While { condition, body } => {
                 while is_truthy(&self.interpret_expr(condition)?) {
-                    self.execute(body)?;
+                    match self.execute(body) {
+                        Err(InterpreterError::LoopUnwind) => break,
+                        err @ Err(_) => return err,
+                        Ok(_) => (),
+                    }
                 }
             }
+            Stmt::Break => return Err(InterpreterError::LoopUnwind),
         };
 
         Ok(())
@@ -222,4 +233,6 @@ pub enum InterpreterError {
     },
     #[error("{0}")]
     EnvError(#[from] EnvError),
+    #[error("unwinding loop")]
+    LoopUnwind,
 }

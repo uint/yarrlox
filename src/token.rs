@@ -63,6 +63,8 @@ pub enum Token<'src> {
     // Keywords.
     #[token("and")]
     And,
+    #[token("break")]
+    Break,
     #[token("class")]
     Class,
     #[token("else")]
