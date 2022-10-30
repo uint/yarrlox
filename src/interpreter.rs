@@ -1,7 +1,6 @@
 use crate::ast::*;
 use crate::callable::Clock;
 use crate::env::{Env, EnvError};
-use crate::parser::{ParserError, ParserErrorKind};
 use crate::value::{Type, Value};
 
 macro_rules! impl_arithmetic {
