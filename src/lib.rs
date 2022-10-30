@@ -3,6 +3,7 @@ use errors::ErrorReporter;
 use crate::{interpreter::Interpreter, parser::Parser};
 
 mod ast;
+mod callable;
 mod env;
 pub mod errors;
 pub mod interpreter;

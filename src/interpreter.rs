@@ -1,4 +1,5 @@
 use crate::ast::*;
+use crate::callable::Clock;
 use crate::env::{Env, EnvError};
 use crate::parser::{ParserError, ParserErrorKind};
 use crate::value::{Type, Value};
@@ -46,7 +47,11 @@ pub enum ExecResult {
 
 impl<'v> Interpreter {
     pub fn new() -> Self {
-        Self { env: Env::new() }
+        let mut env = Env::new();
+
+        env.define("clock", Value::Callable(Box::new(Clock)));
+
+        Self { env }
     }
 
     pub fn interpret(&mut self, stmts: &[Stmt]) -> Vec<InterpreterError> {
@@ -220,8 +225,18 @@ impl<'v> Interpreter {
             .map(|arg| self.interpret_expr(arg))
             .collect::<Result<_, _>>()?;
 
-        // call the thing here
-        Ok(todo!())
+        if let Value::Callable(callable) = callee {
+            if args.len() == callable.arity() as usize {
+                Ok(callable.call(self, args))
+            } else {
+                Err(InterpreterError::ArityMismatch {
+                    expected: callable.arity(),
+                    got: args.len(),
+                })
+            }
+        } else {
+            Err(InterpreterError::NotCallable)
+        }
     }
 }
 
@@ -248,4 +263,8 @@ pub enum InterpreterError {
     EnvError(#[from] EnvError),
     #[error("unwinding loop")]
     LoopUnwind,
+    #[error("not callable")]
+    NotCallable,
+    #[error("function expected {expected} arguments, but received {got}")]
+    ArityMismatch { expected: u8, got: usize },
 }

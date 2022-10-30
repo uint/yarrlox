@@ -1,4 +1,4 @@
-use std::collections::{vec_deque, HashMap, VecDeque};
+use std::collections::{HashMap, VecDeque};
 
 use crate::value::Value;
 
@@ -29,7 +29,7 @@ impl Env {
         self.scopes.pop_front();
     }
 
-    fn root(&mut self) -> &mut HashMap<String, Value> {
+    fn global(&mut self) -> &mut HashMap<String, Value> {
         let last = self.scopes.len() - 1;
         &mut self.scopes[last]
     }
@@ -38,8 +38,8 @@ impl Env {
         &mut self.scopes[0]
     }
 
-    pub fn define(&mut self, name: String, value: Value) {
-        self.current().insert(name, value);
+    pub fn define(&mut self, name: impl Into<String>, value: Value) {
+        self.current().insert(name.into(), value);
     }
 
     pub fn get(&self, name: &str) -> Value {
