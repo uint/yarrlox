@@ -338,7 +338,7 @@ impl<'src> Parser<'src> {
             != Token::RightParen
         {
             while {
-                if args.len() >= 2 {
+                if args.len() >= 255 {
                     return Err(Error::new(
                         self.lexer.peek_spanned().unwrap(),
                         ParserErrorKind::TooManyArgs,
