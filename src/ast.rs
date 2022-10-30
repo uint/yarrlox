@@ -61,6 +61,11 @@ structstruck::strike! {
 pub enum Stmt<'src> {
     Block(Vec<Stmt<'src>>),
     Expr(Expr<'src>),
+    Function {
+        name: Identifier<'src>,
+        params: Vec<Identifier<'src>>,
+        body: Vec<Stmt<'src>>,
+    },
     If {
         condition: Expr<'src>,
         then_branch: Box<Stmt<'src>>,

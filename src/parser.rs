@@ -63,11 +63,56 @@ impl<'src> Parser<'src> {
     // `declaration` in the book
     fn parse_stmt(&mut self) -> ParseResult<'src, Stmt<'src>> {
         let res = match self.lexer.peek().unwrap() {
+            Token::Fun => self.parse_fun_decl()?,
             Token::Var => self.parse_var_decl()?,
             _ => self.parse_stmt_sub()?,
         };
 
         Ok(res)
+    }
+
+    fn parse_fun_decl(&mut self) -> ParseResult<'src, Stmt<'src>> {
+        self.lexer.next().unwrap();
+
+        let name = self.parse_ident()?;
+
+        self.expect(Token::LeftParen)?;
+
+        let mut params = vec![];
+        if self.lexer.peek() != Some(Token::RightParen) {
+            while {
+                if params.len() >= 255 {
+                    return Err(Error::new(
+                        self.lexer.peek_spanned(),
+                        ParserErrorKind::TooManyArgs,
+                    ));
+                }
+                params.push(self.parse_ident()?);
+                self.expect(Token::Comma).is_ok()
+            } {}
+        }
+
+        self.expect(Token::RightParen)?;
+        self.check(Token::LeftBrace)?;
+
+        let body = self.parse_block()?;
+
+        Ok(Stmt::Function {
+            name,
+            params,
+            body: body,
+        })
+    }
+
+    fn parse_ident(&mut self) -> ParseResult<'src, Identifier<'src>> {
+        match self.lexer.peek() {
+            Some(Token::Identifier(ident)) => Ok(Identifier(ident)),
+            Some(_) => Err(Error::new(
+                self.lexer.peek_spanned(),
+                ParserErrorKind::UnexpectedToken,
+            )),
+            None => Err(Error::new(None, ParserErrorKind::UnexpectedEof)),
+        }
     }
 
     fn parse_var_decl(&mut self) -> ParseResult<'src, Stmt<'src>> {
@@ -100,7 +145,7 @@ impl<'src> Parser<'src> {
             Token::If => self.parse_if(),
             Token::Print => self.parse_print_stmt(),
             Token::While => self.parse_while_loop(),
-            Token::LeftBrace => self.parse_block(),
+            Token::LeftBrace => Ok(Stmt::Block(self.parse_block()?)),
             Token::Break => self.parse_break(),
             _ => self.parse_expr_stmt(),
         }
@@ -203,7 +248,7 @@ impl<'src> Parser<'src> {
         Ok(Stmt::Print(res))
     }
 
-    fn parse_block(&mut self) -> ParseResult<'src, Stmt<'src>> {
+    fn parse_block(&mut self) -> ParseResult<'src, Vec<Stmt<'src>>> {
         self.lexer.next().unwrap();
 
         let mut stmts = vec![];
@@ -215,7 +260,7 @@ impl<'src> Parser<'src> {
             .next()
             .ok_or_else(|| Error::new(None, ParserErrorKind::UnexpectedEof))?;
 
-        Ok(Stmt::Block(stmts))
+        Ok(stmts)
     }
 
     fn parse_break(&mut self) -> ParseResult<'src, Stmt<'src>> {
@@ -392,6 +437,22 @@ impl<'src> Parser<'src> {
 
         if token == expected {
             Ok(self.lexer.next().unwrap())
+        } else {
+            Err(Error::new(
+                self.lexer.peek_spanned().unwrap(),
+                ParserErrorKind::UnexpectedToken,
+            ))
+        }
+    }
+
+    fn check(&mut self, expected: Token<'src>) -> ParseResult<'src, SpannedToken<'src>> {
+        let token = self
+            .lexer
+            .peek()
+            .ok_or(Error::new(None, ParserErrorKind::UnexpectedEof))?;
+
+        if token == expected {
+            Ok(self.lexer.peek_spanned().unwrap())
         } else {
             Err(Error::new(
                 self.lexer.peek_spanned().unwrap(),
