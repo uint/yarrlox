@@ -39,7 +39,7 @@ impl<'src> Parser<'src> {
         self.lexer.peek().is_none()
     }
 
-    pub fn parse(&mut self) -> Result<Vec<Stmt<'src>>, Vec<ParserError>> {
+    pub fn parse(&mut self) -> Result<Vec<Stmt>, Vec<ParserError>> {
         let mut stmts = Vec::new();
         let mut errors = Vec::new();
 
@@ -61,7 +61,7 @@ impl<'src> Parser<'src> {
     }
 
     // `declaration` in the book
-    fn parse_stmt(&mut self) -> ParseResult<'src, Stmt<'src>> {
+    fn parse_stmt(&mut self) -> ParseResult<'src, Stmt> {
         let res = match self.lexer.peek().unwrap() {
             Token::Fun => self.parse_fun_decl()?,
             Token::Var => self.parse_var_decl()?,
@@ -71,7 +71,7 @@ impl<'src> Parser<'src> {
         Ok(res)
     }
 
-    fn parse_fun_decl(&mut self) -> ParseResult<'src, Stmt<'src>> {
+    fn parse_fun_decl(&mut self) -> ParseResult<'src, Stmt> {
         self.lexer.next().unwrap();
 
         let name = self.parse_ident()?;
@@ -97,16 +97,15 @@ impl<'src> Parser<'src> {
 
         let body = self.parse_block()?;
 
-        Ok(Stmt::Function {
-            name,
-            params,
-            body: body,
-        })
+        Ok(Stmt::Function(Function { name, params, body }))
     }
 
-    fn parse_ident(&mut self) -> ParseResult<'src, Identifier<'src>> {
+    fn parse_ident(&mut self) -> ParseResult<'src, Identifier> {
         match self.lexer.peek() {
-            Some(Token::Identifier(ident)) => Ok(Identifier(ident)),
+            Some(Token::Identifier(ident)) => {
+                self.lexer.next().unwrap();
+                Ok(Identifier(ident.to_string()))
+            }
             Some(_) => Err(Error::new(
                 self.lexer.peek_spanned(),
                 ParserErrorKind::UnexpectedToken,
@@ -115,7 +114,7 @@ impl<'src> Parser<'src> {
         }
     }
 
-    fn parse_var_decl(&mut self) -> ParseResult<'src, Stmt<'src>> {
+    fn parse_var_decl(&mut self) -> ParseResult<'src, Stmt> {
         self.lexer.next().unwrap();
 
         let res = match self.lexer.next() {
@@ -123,7 +122,7 @@ impl<'src> Parser<'src> {
                 token: Token::Identifier(ident),
                 ..
             }) => Ok(Stmt::Var {
-                name: Identifier(ident),
+                name: Identifier(ident.to_string()),
                 initializer: if self.expect(Token::Equal).is_ok() {
                     Some(self.parse_expr()?)
                 } else {
@@ -139,7 +138,7 @@ impl<'src> Parser<'src> {
     }
 
     // `statement` in the book
-    fn parse_stmt_sub(&mut self) -> ParseResult<'src, Stmt<'src>> {
+    fn parse_stmt_sub(&mut self) -> ParseResult<'src, Stmt> {
         match self.lexer.peek().unwrap() {
             Token::For => self.parse_for_loop(),
             Token::If => self.parse_if(),
@@ -151,7 +150,7 @@ impl<'src> Parser<'src> {
         }
     }
 
-    fn parse_for_loop(&mut self) -> ParseResult<'src, Stmt<'src>> {
+    fn parse_for_loop(&mut self) -> ParseResult<'src, Stmt> {
         self.lexer.next().unwrap();
 
         self.expect(Token::LeftParen)?;
@@ -203,7 +202,7 @@ impl<'src> Parser<'src> {
         Ok(body)
     }
 
-    fn parse_if(&mut self) -> ParseResult<'src, Stmt<'src>> {
+    fn parse_if(&mut self) -> ParseResult<'src, Stmt> {
         self.lexer.next().unwrap();
 
         self.expect(Token::LeftParen)?;
@@ -224,7 +223,7 @@ impl<'src> Parser<'src> {
         })
     }
 
-    fn parse_while_loop(&mut self) -> ParseResult<'src, Stmt<'src>> {
+    fn parse_while_loop(&mut self) -> ParseResult<'src, Stmt> {
         self.lexer.next().unwrap();
 
         self.expect(Token::LeftParen)?;
@@ -239,7 +238,7 @@ impl<'src> Parser<'src> {
         Ok(Stmt::While { condition, body })
     }
 
-    fn parse_print_stmt(&mut self) -> ParseResult<'src, Stmt<'src>> {
+    fn parse_print_stmt(&mut self) -> ParseResult<'src, Stmt> {
         self.lexer.next().unwrap();
         let res = self.parse_expr()?;
 
@@ -248,7 +247,7 @@ impl<'src> Parser<'src> {
         Ok(Stmt::Print(res))
     }
 
-    fn parse_block(&mut self) -> ParseResult<'src, Vec<Stmt<'src>>> {
+    fn parse_block(&mut self) -> ParseResult<'src, Vec<Stmt>> {
         self.lexer.next().unwrap();
 
         let mut stmts = vec![];
@@ -263,7 +262,7 @@ impl<'src> Parser<'src> {
         Ok(stmts)
     }
 
-    fn parse_break(&mut self) -> ParseResult<'src, Stmt<'src>> {
+    fn parse_break(&mut self) -> ParseResult<'src, Stmt> {
         let break_token = self.lexer.next().unwrap();
 
         self.expect(Token::Semicolon)?;
@@ -277,7 +276,7 @@ impl<'src> Parser<'src> {
         }
     }
 
-    fn parse_expr_stmt(&mut self) -> ParseResult<'src, Stmt<'src>> {
+    fn parse_expr_stmt(&mut self) -> ParseResult<'src, Stmt> {
         let res = self.parse_expr()?;
         self.expect(Token::Semicolon)?;
         Ok(Stmt::Expr(res))
@@ -374,7 +373,7 @@ impl<'src> Parser<'src> {
         Ok(expr)
     }
 
-    fn finish_call(&mut self, callee: Expr<'src>) -> ParseResult<'src> {
+    fn finish_call(&mut self, callee: Expr) -> ParseResult<'src> {
         let mut args = vec![];
         if self
             .lexer
@@ -399,7 +398,7 @@ impl<'src> Parser<'src> {
         Ok(Expr::Call(Call {
             args,
             callee: Box::new(callee),
-            paren,
+            paren: paren.span,
         }))
     }
 
@@ -410,9 +409,9 @@ impl<'src> Parser<'src> {
             .next()
             .ok_or_else(|| ParserError::new(None, ParserErrorKind::UnexpectedEof))?;
         Ok(match token.token {
-            Token::NumLit(l) => Expr::Literal(Literal::NumLit(NumLit(l))),
-            Token::StringLit(l) => Expr::Literal(Literal::StringLit(StringLit(l))),
-            Token::Identifier(l) => Expr::Literal(Literal::Identifier(Identifier(l))),
+            Token::NumLit(l) => Expr::Literal(Literal::NumLit(NumLit(l.to_string()))),
+            Token::StringLit(l) => Expr::Literal(Literal::StringLit(StringLit(l.to_string()))),
+            Token::Identifier(l) => Expr::Literal(Literal::Identifier(Identifier(l.to_string()))),
             Token::Nil => Expr::Literal(Literal::Nil),
             Token::True => Expr::Literal(Literal::Bool(true)),
             Token::False => Expr::Literal(Literal::Bool(false)),
@@ -517,7 +516,7 @@ impl Precedence for BinaryOp {
     }
 }
 
-pub type ParseResult<'src, T = Expr<'src>> = Result<T, ParserError<'src>>;
+pub type ParseResult<'src, T = Expr> = Result<T, ParserError<'src>>;
 
 pub type ParserError<'src> = Error<'src, ParserErrorKind>;
 
@@ -545,14 +544,14 @@ mod tests {
         dbg!(&expr);
 
         let expected = Expr::Binary(Binary {
-            left: Box::new(Expr::Literal(Literal::NumLit(NumLit("1")))),
+            left: Box::new(Expr::Literal(Literal::NumLit(NumLit("1".to_string())))),
             right: Box::new(Expr::Binary(Binary {
                 left: Box::new(Expr::Binary(Binary {
-                    left: Box::new(Expr::Literal(Literal::NumLit(NumLit("2")))),
-                    right: Box::new(Expr::Literal(Literal::NumLit(NumLit("3")))),
+                    left: Box::new(Expr::Literal(Literal::NumLit(NumLit("2".to_string())))),
+                    right: Box::new(Expr::Literal(Literal::NumLit(NumLit("3".to_string())))),
                     op: BinaryOp::Mul,
                 })),
-                right: Box::new(Expr::Literal(Literal::NumLit(NumLit("4")))),
+                right: Box::new(Expr::Literal(Literal::NumLit(NumLit("4".to_string())))),
                 op: BinaryOp::Add,
             })),
             op: BinaryOp::Gte,
@@ -567,11 +566,13 @@ mod tests {
         dbg!(&expr);
 
         let expected = Expr::Binary(Binary {
-            left: Box::new(Expr::Literal(Literal::NumLit(NumLit("1")))),
+            left: Box::new(Expr::Literal(Literal::NumLit(NumLit("1".to_string())))),
             right: Box::new(Expr::Grouping(Grouping {
                 expr: Box::new(Expr::Binary(Binary {
-                    left: Box::new(Expr::Literal(Literal::NumLit(NumLit("2")))),
-                    right: Box::new(Expr::Literal(Literal::Identifier(Identifier("foo")))),
+                    left: Box::new(Expr::Literal(Literal::NumLit(NumLit("2".to_string())))),
+                    right: Box::new(Expr::Literal(Literal::Identifier(Identifier(
+                        "foo".to_string(),
+                    )))),
                     op: BinaryOp::Add,
                 })),
             })),

@@ -5,17 +5,17 @@
 // to implement the visitor pattern, but that means more boilerplate and less
 // idiomatic code. I didn't find enough justification for using the visitor pattern.
 
-use crate::token::SpannedToken;
+use std::ops::Range;
 
 structstruck::strike! {
     #[strikethrough[derive(Clone, Debug, PartialEq)]]
-    pub enum Expr<'src> {
-        Assign(pub struct<'src> {
-            pub name: Identifier<'src>,
-            pub value: Box<Expr<'src>>,
+    pub enum Expr {
+        Assign(pub struct {
+            pub name: Identifier,
+            pub value: Box<Expr>,
         }),
-        Binary(pub struct<'src> {
-             pub left: Box<Expr<'src>>,
+        Binary(pub struct {
+             pub left: Box<Expr>,
              pub op: pub enum BinaryOp {
                  LogicOr,
                  LogicAnd,
@@ -30,55 +30,57 @@ structstruck::strike! {
                  Eq,
                  NotEq,
              },
-             pub right: Box<Expr<'src>>,
+             pub right: Box<Expr>,
         }),
-        Literal(pub enum<'src> {
-            StringLit(pub struct<'src>(pub &'src str)),
-            NumLit(pub struct<'src>(pub &'src str)),
-            Identifier(pub struct<'src>(pub &'src str)),
+        Literal(pub enum {
+            StringLit(pub struct(pub String)),
+            NumLit(pub struct(pub String)),
+            Identifier(pub struct(pub String)),
             Nil,
             Bool(bool),
         }),
-        Unary(pub struct<'src> {
+        Unary(pub struct {
             pub op: pub enum UnaryOp {
                 Negation,
                 Not,
             },
-            pub right: Box<Expr<'src>>,
+            pub right: Box<Expr>,
         }),
-        Grouping(pub struct<'src> {
-            pub expr: Box<Expr<'src>>,
+        Grouping(pub struct {
+            pub expr: Box<Expr>,
         }),
-        Call(pub struct<'src> {
-            pub callee: Box<Expr<'src>>,
-            pub paren: SpannedToken<'src>,
-            pub args: Vec<Expr<'src>>,
+        Call(pub struct {
+            pub callee: Box<Expr>,
+            pub paren: Range<usize>,
+            pub args: Vec<Expr>,
         }),
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub enum Stmt<'src> {
-    Block(Vec<Stmt<'src>>),
-    Expr(Expr<'src>),
-    Function {
-        name: Identifier<'src>,
-        params: Vec<Identifier<'src>>,
-        body: Vec<Stmt<'src>>,
-    },
-    If {
-        condition: Expr<'src>,
-        then_branch: Box<Stmt<'src>>,
-        else_branch: Option<Box<Stmt<'src>>>,
-    },
-    Print(Expr<'src>),
-    Var {
-        name: Identifier<'src>,
-        initializer: Option<Expr<'src>>,
-    },
-    While {
-        condition: Expr<'src>,
-        body: Box<Stmt<'src>>,
-    },
-    Break,
+structstruck::strike! {
+    #[strikethrough[derive(Clone, Debug, PartialEq)]]
+    pub enum Stmt {
+        Block(Vec<Stmt>),
+        Expr(Expr),
+        Function (pub struct {
+            pub name: Identifier,
+            pub params: Vec<Identifier>,
+            pub body: Vec<Stmt>,
+        }),
+        If {
+            condition: Expr,
+            then_branch: Box<Stmt>,
+            else_branch: Option<Box<Stmt>>,
+        },
+        Print(Expr),
+        Var {
+            name: Identifier,
+            initializer: Option<Expr>,
+        },
+        While {
+            condition: Expr,
+            body: Box<Stmt>,
+        },
+        Break,
+    }
 }

@@ -3,7 +3,11 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use crate::{interpreter::Interpreter, value::Value};
+use crate::ast::{self, Expr};
+use crate::{
+    interpreter::{Interpreter, InterpreterError},
+    value::Value,
+};
 
 type Args = Vec<Value>;
 
@@ -36,6 +40,50 @@ impl PartialEq for Box<dyn Callable> {
         self.equals_callable(other.as_ref())
     }
 }
+
+// -- User-defined --
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Function {
+    decl: ast::Function,
+}
+
+impl Function {
+    pub fn new(decl: ast::Function) -> Self {
+        Self { decl }
+    }
+}
+
+impl Callable for Function {
+    fn call(&self, interpreter: &mut Interpreter, args: Args) -> Value {
+        interpreter.execute_fun_call(&self.decl.body, &self.decl.params, args);
+
+        Value::Nil
+    }
+
+    fn arity(&self) -> u8 {
+        self.decl.params.len() as u8
+    }
+
+    fn boxed_clone(&self) -> Box<dyn Callable> {
+        Box::new(self.clone())
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn equals_callable(&self, other: &dyn Callable) -> bool {
+        // TODO: registered functions should probably end up in a table in `Interpreter`
+        // with unique indexes, and we would then just compare those indexes
+        other
+            .as_any()
+            .downcast_ref::<Function>()
+            .map_or(false, |a| self == a)
+    }
+}
+
+// -- Built-ins --
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Clock;

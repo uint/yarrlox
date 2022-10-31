@@ -55,7 +55,7 @@ impl<'v> Interpreter {
 
     pub fn interpret(&mut self, stmts: &[Stmt]) -> Vec<InterpreterError> {
         stmts
-            .iter()
+            .into_iter()
             .map(|s| self.execute(s))
             .filter_map(Result::err)
             .collect()
@@ -99,7 +99,34 @@ impl<'v> Interpreter {
                 }
             }
             Stmt::Break => return Err(InterpreterError::LoopUnwind),
+            Stmt::Function(fun) => self.declare_fun(fun),
         };
+
+        Ok(())
+    }
+
+    fn declare_fun(&mut self, fun: &Function) {
+        self.env.define(
+            fun.name.0.clone(),
+            Value::Callable(Box::new(crate::callable::Function::new(fun.clone()))),
+        );
+    }
+
+    pub fn execute_fun_call(
+        &mut self,
+        stmts: &[Stmt],
+        params: &[Identifier],
+        args: Vec<Value>,
+    ) -> Result<(), InterpreterError> {
+        self.env.child();
+
+        for (param, arg) in params.iter().zip(args) {
+            self.env.define(param.0.clone(), arg);
+        }
+
+        self.execute_block(stmts)?;
+
+        self.env.pop();
 
         Ok(())
     }
@@ -116,7 +143,7 @@ impl<'v> Interpreter {
         Ok(())
     }
 
-    fn print(&mut self, expr: &Expr<'v>) -> Result<(), InterpreterError> {
+    fn print(&mut self, expr: &Expr) -> Result<(), InterpreterError> {
         println!("{}", self.interpret_expr(expr)?);
 
         Ok(())
@@ -149,7 +176,7 @@ impl<'v> Interpreter {
                 value
             }
             Expr::Literal(l) => match l {
-                Literal::StringLit(StringLit(l)) => Value::string(*l),
+                Literal::StringLit(StringLit(l)) => Value::string(l),
                 Literal::NumLit(NumLit(l)) => Num(l.parse().unwrap()),
                 Literal::Identifier(Identifier(ident)) => self.env.get(ident),
                 Literal::Nil => Value::Nil,
