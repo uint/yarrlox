@@ -3,7 +3,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use crate::ast::{self, Expr};
+use crate::ast::{self};
 use crate::{
     interpreter::{Interpreter, InterpreterError},
     value::Value,

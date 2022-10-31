@@ -35,10 +35,6 @@ impl Env {
         self.branches[0].pop_front().expect("nothing to pop");
     }
 
-    fn global(&mut self) -> &mut HashMap<String, Value> {
-        &mut self.globals
-    }
-
     fn current(&mut self) -> &mut HashMap<String, Value> {
         if let Some(scope) = self.branches[0].get_mut(0) {
             scope
