@@ -119,7 +119,7 @@ impl<'v> Interpreter {
         params: &[Identifier],
         args: Vec<Value>,
     ) -> Result<Value, InterpreterError> {
-        self.env.child();
+        self.env.branch();
 
         for (param, arg) in params.iter().zip(args) {
             self.env.define(param.0.clone(), arg);
@@ -131,7 +131,7 @@ impl<'v> Interpreter {
             Err(err) => return Err(err),
         };
 
-        self.env.pop();
+        self.env.pop_branch();
 
         Ok(val)
     }
