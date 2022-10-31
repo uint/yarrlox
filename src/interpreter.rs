@@ -67,6 +67,7 @@ impl<'v> Interpreter {
                 self.interpret_expr(expr)?;
             }
             Stmt::Print(expr) => self.print(expr)?,
+            Stmt::Return(expr) => self.ret(expr.into())?,
             Stmt::Var {
                 name: Identifier(name),
                 initializer,
@@ -117,18 +118,22 @@ impl<'v> Interpreter {
         stmts: &[Stmt],
         params: &[Identifier],
         args: Vec<Value>,
-    ) -> Result<(), InterpreterError> {
+    ) -> Result<Value, InterpreterError> {
         self.env.child();
 
         for (param, arg) in params.iter().zip(args) {
             self.env.define(param.0.clone(), arg);
         }
 
-        self.execute_block(stmts)?;
+        let val = match self.execute_block(stmts) {
+            Ok(()) => Value::Nil,
+            Err(InterpreterError::FunReturn(v)) => v,
+            Err(err) => return Err(err),
+        };
 
         self.env.pop();
 
-        Ok(())
+        Ok(val)
     }
 
     fn execute_block(&mut self, stmts: &[Stmt]) -> Result<(), InterpreterError> {
@@ -147,6 +152,14 @@ impl<'v> Interpreter {
         println!("{}", self.interpret_expr(expr)?);
 
         Ok(())
+    }
+
+    fn ret(&mut self, expr: Option<&Expr>) -> Result<(), InterpreterError> {
+        let val = expr
+            .map(|expr| self.interpret_expr(expr))
+            .unwrap_or(Ok(Value::Nil))?;
+
+        Err(InterpreterError::FunReturn(val))
     }
 
     fn eval_logic(
@@ -253,7 +266,7 @@ impl<'v> Interpreter {
 
         if let Value::Callable(callable) = callee {
             if args.len() == callable.arity() as usize {
-                Ok(callable.call(self, args))
+                Ok(callable.call(self, args)?)
             } else {
                 Err(InterpreterError::ArityMismatch {
                     expected: callable.arity(),
@@ -289,6 +302,8 @@ pub enum InterpreterError {
     EnvError(#[from] EnvError),
     #[error("unwinding loop")]
     LoopUnwind,
+    #[error("returning from function")]
+    FunReturn(Value),
     #[error("not callable")]
     NotCallable,
     #[error("function expected {expected} arguments, but received {got}")]

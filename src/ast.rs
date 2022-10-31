@@ -73,6 +73,7 @@ structstruck::strike! {
             else_branch: Option<Box<Stmt>>,
         },
         Print(Expr),
+        Return(Option<Expr>),
         Var {
             name: Identifier,
             initializer: Option<Expr>,

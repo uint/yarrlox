@@ -143,6 +143,7 @@ impl<'src> Parser<'src> {
             Token::For => self.parse_for_loop(),
             Token::If => self.parse_if(),
             Token::Print => self.parse_print_stmt(),
+            Token::Return => self.parse_return_stmt(),
             Token::While => self.parse_while_loop(),
             Token::LeftBrace => Ok(Stmt::Block(self.parse_block()?)),
             Token::Break => self.parse_break(),
@@ -245,6 +246,19 @@ impl<'src> Parser<'src> {
         self.expect(Token::Semicolon)?;
 
         Ok(Stmt::Print(res))
+    }
+
+    fn parse_return_stmt(&mut self) -> ParseResult<'src, Stmt> {
+        self.lexer.next().unwrap();
+        let val = if self.lexer.peek() == Some(Token::Semicolon) {
+            None
+        } else {
+            Some(self.parse_expr()?)
+        };
+
+        self.expect(Token::Semicolon)?;
+
+        Ok(Stmt::Return(val))
     }
 
     fn parse_block(&mut self) -> ParseResult<'src, Vec<Stmt>> {

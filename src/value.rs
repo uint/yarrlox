@@ -11,6 +11,8 @@ pub enum Value {
     Callable(Box<dyn Callable>),
 }
 
+impl Eq for Value {}
+
 impl PartialEq for Value {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {

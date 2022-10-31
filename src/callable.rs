@@ -12,7 +12,7 @@ use crate::{
 type Args = Vec<Value>;
 
 pub trait Callable: std::fmt::Debug {
-    fn call(&self, interpreter: &mut Interpreter, args: Args) -> Value;
+    fn call(&self, interpreter: &mut Interpreter, args: Args) -> Result<Value, InterpreterError>;
 
     fn arity(&self) -> u8;
 
@@ -55,10 +55,8 @@ impl Function {
 }
 
 impl Callable for Function {
-    fn call(&self, interpreter: &mut Interpreter, args: Args) -> Value {
-        interpreter.execute_fun_call(&self.decl.body, &self.decl.params, args);
-
-        Value::Nil
+    fn call(&self, interpreter: &mut Interpreter, args: Args) -> Result<Value, InterpreterError> {
+        interpreter.execute_fun_call(&self.decl.body, &self.decl.params, args)
     }
 
     fn arity(&self) -> u8 {
@@ -89,13 +87,13 @@ impl Callable for Function {
 pub struct Clock;
 
 impl Callable for Clock {
-    fn call(&self, _interpreter: &mut Interpreter, _args: Args) -> Value {
+    fn call(&self, _interpreter: &mut Interpreter, _args: Args) -> Result<Value, InterpreterError> {
         let start = SystemTime::now();
         let since_the_epoch = start
             .duration_since(UNIX_EPOCH)
             .expect("Time went backwards");
 
-        Value::Num(since_the_epoch.as_millis() as f64 / 1000.0)
+        Ok(Value::Num(since_the_epoch.as_millis() as f64 / 1000.0))
     }
 
     fn arity(&self) -> u8 {
