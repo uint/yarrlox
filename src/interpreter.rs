@@ -39,7 +39,7 @@ macro_rules! impl_comparison {
 }
 
 pub struct Interpreter {
-    globals: Rc<RefCell<Env>>,
+    //globals: Rc<RefCell<Env>>,
     env: Rc<RefCell<Env>>,
 }
 
@@ -50,7 +50,7 @@ pub enum ExecResult {
 
 impl<'v> Interpreter {
     pub fn new() -> Self {
-        let mut env = Env::new();
+        let env = Env::new();
 
         env.borrow_mut()
             .define("clock", Value::Callable(Rc::new(Clock)));
@@ -115,9 +115,14 @@ impl<'v> Interpreter {
     }
 
     fn declare_fun(&mut self, fun: &Function) {
+        let fun_env = Rc::clone(&self.env);
+
         self.env.borrow_mut().define(
             fun.name.0.clone(),
-            Value::Callable(Rc::new(crate::callable::Function::new(fun.clone()))),
+            Value::Callable(Rc::new(crate::callable::Function::new(
+                fun.clone(),
+                fun_env,
+            ))),
         );
     }
 
@@ -125,9 +130,10 @@ impl<'v> Interpreter {
         &mut self,
         stmts: &[Stmt],
         params: &[Identifier],
+        closure: Rc<RefCell<Env>>,
         args: Vec<Value>,
     ) -> Result<Value, InterpreterError> {
-        let new_env = Env::child(&self.globals);
+        let new_env = Env::child(&closure);
         let prev_env = std::mem::replace(&mut self.env, new_env);
 
         for (param, arg) in params.iter().zip(args) {

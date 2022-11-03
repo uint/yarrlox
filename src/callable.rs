@@ -1,9 +1,14 @@
 use std::{
     any::Any,
+    cell::RefCell,
+    rc::Rc,
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use crate::ast::{self};
+use crate::{
+    ast::{self},
+    env::Env,
+};
 use crate::{
     interpreter::{Interpreter, InterpreterError},
     value::Value,
@@ -46,17 +51,23 @@ impl PartialEq for Box<dyn Callable> {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Function {
     decl: ast::Function,
+    env: Rc<RefCell<Env>>,
 }
 
 impl Function {
-    pub fn new(decl: ast::Function) -> Self {
-        Self { decl }
+    pub fn new(decl: ast::Function, env: Rc<RefCell<Env>>) -> Self {
+        Self { decl, env }
     }
 }
 
 impl Callable for Function {
     fn call(&self, interpreter: &mut Interpreter, args: Args) -> Result<Value, InterpreterError> {
-        interpreter.execute_fun_call(&self.decl.body, &self.decl.params, args)
+        interpreter.execute_fun_call(
+            &self.decl.body,
+            &self.decl.params,
+            Rc::clone(&self.env),
+            args,
+        )
     }
 
     fn arity(&self) -> u8 {

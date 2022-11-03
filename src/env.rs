@@ -1,11 +1,8 @@
-use std::{
-    cell::{Ref, RefCell},
-    collections::{HashMap, VecDeque},
-    rc::Rc,
-};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::value::Value;
 
+#[derive(Debug, PartialEq)]
 pub struct Env {
     up: Option<Rc<RefCell<Self>>>,
     names: HashMap<String, Value>,
