@@ -56,7 +56,7 @@ impl<'v> Interpreter {
             .define("clock", Value::Callable(Rc::new(Clock)));
 
         Self {
-            globals: Rc::clone(&env),
+            //globals: Rc::clone(&env),
             env,
         }
     }
