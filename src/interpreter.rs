@@ -64,12 +64,12 @@ impl<'v> Interpreter {
     pub fn interpret(&mut self, stmts: &[Stmt]) -> Vec<InterpreterError> {
         stmts
             .into_iter()
-            .map(|s| self.execute(s, Rc::clone(&self.globals)))
+            .map(|s| self.execute(s))
             .filter_map(Result::err)
             .collect()
     }
 
-    pub fn execute(&mut self, stmt: &Stmt, env: Rc<RefCell<Env>>) -> Result<(), InterpreterError> {
+    pub fn execute(&mut self, stmt: &Stmt) -> Result<(), InterpreterError> {
         match stmt {
             Stmt::Expr(expr) => {
                 self.interpret_expr(expr)?;
@@ -86,21 +86,21 @@ impl<'v> Interpreter {
                 };
                 self.env.borrow_mut().define(name.to_string(), value)
             }
-            Stmt::Block(stmts) => self.execute_block(stmts, Env::child(&env))?,
+            Stmt::Block(stmts) => self.execute_block(stmts)?,
             Stmt::If {
                 condition,
                 then_branch,
                 else_branch,
             } => {
                 if is_truthy(&self.interpret_expr(condition)?) {
-                    self.execute(then_branch, env)?;
+                    self.execute(then_branch)?;
                 } else if let Some(else_branch) = else_branch {
-                    self.execute(else_branch, env)?;
+                    self.execute(else_branch)?;
                 }
             }
             Stmt::While { condition, body } => {
                 while is_truthy(&self.interpret_expr(condition)?) {
-                    match self.execute(body, Rc::clone(&env)) {
+                    match self.execute(body) {
                         Err(InterpreterError::LoopUnwind) => break,
                         err @ Err(_) => return err,
                         Ok(_) => (),
@@ -127,29 +127,33 @@ impl<'v> Interpreter {
         params: &[Identifier],
         args: Vec<Value>,
     ) -> Result<Value, InterpreterError> {
-        let env = Env::child(&self.globals);
+        let new_env = Env::child(&self.globals);
+        let prev_env = std::mem::replace(&mut self.env, new_env);
 
         for (param, arg) in params.iter().zip(args) {
-            env.borrow_mut().define(param.0.clone(), arg);
+            self.env.borrow_mut().define(param.0.clone(), arg);
         }
 
-        let val = match self.execute_block(stmts, env) {
+        let val = match self.execute_block(stmts) {
             Ok(()) => Value::Nil,
             Err(InterpreterError::FunReturn(v)) => v,
             Err(err) => return Err(err),
         };
 
+        self.env = prev_env;
+
         Ok(val)
     }
 
-    fn execute_block(
-        &mut self,
-        stmts: &[Stmt],
-        env: Rc<RefCell<Env>>,
-    ) -> Result<(), InterpreterError> {
+    fn execute_block(&mut self, stmts: &[Stmt]) -> Result<(), InterpreterError> {
+        let new_env = Env::child(&self.env);
+        let prev_env = std::mem::replace(&mut self.env, new_env);
+
         for stmt in stmts {
-            self.execute(stmt, Rc::clone(&env))?;
+            self.execute(stmt)?;
         }
+
+        self.env = prev_env;
 
         Ok(())
     }
