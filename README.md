@@ -13,6 +13,28 @@ refreshing lightness.
 Yes, the "really" wasn't _really_ needed in the name. Ye better not complain
 lest ye be thrown ta th' sharks.
 
+## Running _yarrlox_
+
+First of all, [get Rust if you need to.](https://rustup.rs/)
+
+Run the REPL:
+
+```
+cargo run
+```
+
+Run a _Lox_ program:
+
+```
+cargo run -- scripts/fib.lox
+```
+
+Install it into your `PATH` if you like it a lot:
+
+```
+cargo install --path .
+```
+
 ## Differences from the Book
 
 - Binary operation precedence/associativity is handled with a precedence
