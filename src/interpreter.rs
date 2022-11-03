@@ -1,3 +1,6 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use crate::ast::*;
 use crate::callable::Clock;
 use crate::env::{Env, EnvError};
@@ -36,7 +39,8 @@ macro_rules! impl_comparison {
 }
 
 pub struct Interpreter {
-    env: Env,
+    globals: Rc<RefCell<Env>>,
+    env: Rc<RefCell<Env>>,
 }
 
 pub enum ExecResult {
@@ -48,20 +52,24 @@ impl<'v> Interpreter {
     pub fn new() -> Self {
         let mut env = Env::new();
 
-        env.define("clock", Value::Callable(Box::new(Clock)));
+        env.borrow_mut()
+            .define("clock", Value::Callable(Rc::new(Clock)));
 
-        Self { env }
+        Self {
+            globals: Rc::clone(&env),
+            env,
+        }
     }
 
     pub fn interpret(&mut self, stmts: &[Stmt]) -> Vec<InterpreterError> {
         stmts
             .into_iter()
-            .map(|s| self.execute(s))
+            .map(|s| self.execute(s, Rc::clone(&self.globals)))
             .filter_map(Result::err)
             .collect()
     }
 
-    pub fn execute(&mut self, stmt: &Stmt) -> Result<(), InterpreterError> {
+    pub fn execute(&mut self, stmt: &Stmt, env: Rc<RefCell<Env>>) -> Result<(), InterpreterError> {
         match stmt {
             Stmt::Expr(expr) => {
                 self.interpret_expr(expr)?;
@@ -76,23 +84,23 @@ impl<'v> Interpreter {
                     Some(init) => self.interpret_expr(init)?,
                     None => Value::Nil,
                 };
-                self.env.define(name.to_string(), value)
+                self.env.borrow_mut().define(name.to_string(), value)
             }
-            Stmt::Block(stmts) => self.execute_block(stmts)?,
+            Stmt::Block(stmts) => self.execute_block(stmts, Env::child(&env))?,
             Stmt::If {
                 condition,
                 then_branch,
                 else_branch,
             } => {
                 if is_truthy(&self.interpret_expr(condition)?) {
-                    self.execute(then_branch)?;
+                    self.execute(then_branch, env)?;
                 } else if let Some(else_branch) = else_branch {
-                    self.execute(else_branch)?;
+                    self.execute(else_branch, env)?;
                 }
             }
             Stmt::While { condition, body } => {
                 while is_truthy(&self.interpret_expr(condition)?) {
-                    match self.execute(body) {
+                    match self.execute(body, Rc::clone(&env)) {
                         Err(InterpreterError::LoopUnwind) => break,
                         err @ Err(_) => return err,
                         Ok(_) => (),
@@ -107,9 +115,9 @@ impl<'v> Interpreter {
     }
 
     fn declare_fun(&mut self, fun: &Function) {
-        self.env.define(
+        self.env.borrow_mut().define(
             fun.name.0.clone(),
-            Value::Callable(Box::new(crate::callable::Function::new(fun.clone()))),
+            Value::Callable(Rc::new(crate::callable::Function::new(fun.clone()))),
         );
     }
 
@@ -119,31 +127,29 @@ impl<'v> Interpreter {
         params: &[Identifier],
         args: Vec<Value>,
     ) -> Result<Value, InterpreterError> {
-        self.env.branch();
+        let env = Env::child(&self.globals);
 
         for (param, arg) in params.iter().zip(args) {
-            self.env.define(param.0.clone(), arg);
+            env.borrow_mut().define(param.0.clone(), arg);
         }
 
-        let val = match self.execute_block(stmts) {
+        let val = match self.execute_block(stmts, env) {
             Ok(()) => Value::Nil,
             Err(InterpreterError::FunReturn(v)) => v,
             Err(err) => return Err(err),
         };
 
-        self.env.pop_branch();
-
         Ok(val)
     }
 
-    fn execute_block(&mut self, stmts: &[Stmt]) -> Result<(), InterpreterError> {
-        self.env.child();
-
+    fn execute_block(
+        &mut self,
+        stmts: &[Stmt],
+        env: Rc<RefCell<Env>>,
+    ) -> Result<(), InterpreterError> {
         for stmt in stmts {
-            self.execute(stmt)?;
+            self.execute(stmt, Rc::clone(&env))?;
         }
-
-        self.env.pop();
 
         Ok(())
     }
@@ -185,13 +191,15 @@ impl<'v> Interpreter {
                 value,
             }) => {
                 let value = self.interpret_expr(value)?;
-                self.env.assign(ident.to_string(), value.clone())?;
+                self.env
+                    .borrow_mut()
+                    .assign(ident.to_string(), value.clone())?;
                 value
             }
             Expr::Literal(l) => match l {
                 Literal::StringLit(StringLit(l)) => Value::string(l),
                 Literal::NumLit(NumLit(l)) => Num(l.parse().unwrap()),
-                Literal::Identifier(Identifier(ident)) => self.env.get(ident),
+                Literal::Identifier(Identifier(ident)) => self.env.borrow().get(ident).clone(),
                 Literal::Nil => Value::Nil,
                 Literal::Bool(b) => Value::Bool(*b),
             },

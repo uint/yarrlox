@@ -1,14 +1,14 @@
-use std::fmt::Display;
+use std::{fmt::Display, rc::Rc};
 
 use crate::callable::Callable;
 
 #[derive(Clone, Debug)]
 pub enum Value {
-    String(String),
+    String(Rc<String>),
     Num(f64),
     Bool(bool),
     Nil,
-    Callable(Box<dyn Callable>),
+    Callable(Rc<dyn Callable>),
 }
 
 impl Eq for Value {}
@@ -19,7 +19,7 @@ impl PartialEq for Value {
             (Self::String(l0), Self::String(r0)) => l0 == r0,
             (Self::Num(l0), Self::Num(r0)) => l0 == r0,
             (Self::Bool(l0), Self::Bool(r0)) => l0 == r0,
-            (Self::Callable(l0), Self::Callable(r0)) => l0 == r0,
+            (Self::Callable(l0), Self::Callable(r0)) => l0.as_ref() == r0.as_ref(),
             _ => core::mem::discriminant(self) == core::mem::discriminant(other),
         }
     }
@@ -36,7 +36,7 @@ pub enum Type {
 
 impl Value {
     pub fn string(s: impl Into<String>) -> Self {
-        Self::String(s.into())
+        Self::String(Rc::new(s.into()))
     }
 
     pub fn ty(&self) -> Type {
