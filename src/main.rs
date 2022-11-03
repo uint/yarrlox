@@ -61,7 +61,9 @@ fn run_repl() -> anyhow::Result<()> {
 
     for line in stdin {
         match line {
-            Ok(line) => yarrlox::eval(&line, yarrlox::errors::SimpleReporter, &mut interpreter),
+            Ok(line) => {
+                yarrlox::eval(&line, yarrlox::errors::SimpleReporter, &mut interpreter);
+            }
             Err(e) => eprintln!("Error reading line: {}", e),
         }
         prompt()?;

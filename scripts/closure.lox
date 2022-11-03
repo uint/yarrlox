@@ -1,15 +1,12 @@
-fun fun_gen() {
-    var x = 5;
-
+fun fun_gen(x) {
     // this function should capture the local x = 5 variable
     fun print_x() {
-        print x;
+        return x;
     }
 
     return print_x;
 }
 
-var fn = fun_gen();
+var fn = fun_gen(5);
 
-fn();    // 5
-print x; // nil, because `x = 5` isn't in scope here
+return fn();

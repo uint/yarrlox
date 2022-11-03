@@ -61,12 +61,25 @@ impl<'v> Interpreter {
         }
     }
 
-    pub fn interpret(&mut self, stmts: &[Stmt]) -> Vec<InterpreterError> {
-        stmts
+    pub fn interpret(&mut self, stmts: &[Stmt]) -> Result<Value, Vec<InterpreterError>> {
+        let errs: Vec<InterpreterError> = stmts
             .into_iter()
             .map(|s| self.execute(s))
             .filter_map(Result::err)
-            .collect()
+            .collect();
+
+        let (returns, errs): (Vec<_>, Vec<_>) = errs
+            .into_iter()
+            .partition(|err| matches!(err, InterpreterError::FunReturn(_)));
+
+        if errs.len() > 0 {
+            Err(errs)
+        } else {
+            Ok(returns
+                .get(0)
+                .map(InterpreterError::ret)
+                .unwrap_or(Value::Nil))
+        }
     }
 
     pub fn execute(&mut self, stmt: &Stmt) -> Result<(), InterpreterError> {
@@ -326,4 +339,14 @@ pub enum InterpreterError {
     NotCallable,
     #[error("function expected {expected} arguments, but received {got}")]
     ArityMismatch { expected: u8, got: usize },
+}
+
+impl InterpreterError {
+    fn ret(&self) -> Value {
+        if let Self::FunReturn(v) = self {
+            v.clone()
+        } else {
+            panic!("should never happen! I'm serious! gosh!");
+        }
+    }
 }
