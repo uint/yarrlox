@@ -1,6 +1,6 @@
-mod runner;
+mod helpers;
 
-use runner::run;
+use helpers::run;
 
 use yarrlox::value::Value;
 
