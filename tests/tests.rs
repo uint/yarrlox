@@ -1,49 +1,19 @@
-use yarrlox::{
-    interpreter::{Interpreter, InterpreterOutput},
-    value::Value,
-};
+mod runner;
 
-struct RunResult {
-    v: Option<Value>,
-    output: String,
-}
+use runner::run;
 
-impl RunResult {
-    #[track_caller]
-    fn assert_output(&self, expected: &str) {
-        assert_eq!(self.output.trim(), expected.trim());
-    }
-
-    #[track_caller]
-    fn assert_v(&self, expected: Value) {
-        assert_eq!(self.v.clone().unwrap(), expected);
-    }
-}
-
-fn run(source: impl AsRef<str>) -> RunResult {
-    let mut interpreter = Interpreter::new(InterpreterOutput::String(Vec::new()));
-    let v = yarrlox::eval(
-        source.as_ref(),
-        yarrlox::errors::SimpleReporter,
-        &mut interpreter,
-    );
-
-    RunResult {
-        v,
-        output: interpreter.get_output(),
-    }
-}
+use yarrlox::value::Value;
 
 #[test]
 fn closure() {
     let closure = r#"
 fun fun_gen(x) {
-    // this function should capture the local x = 5 variable
-    fun print_x() {
-        return x;
-    }
+  // this function should capture the local x = 5 variable
+  fun print_x() {
+    return x;
+  }
 
-    return print_x;
+  return print_x;
 }
 
 var fn = fun_gen(5);
