@@ -3,12 +3,12 @@ use yarrlox::{
     value::Value,
 };
 
-pub struct RunResult {
+pub struct RunResults {
     v: Option<Value>,
     output: String,
 }
 
-impl RunResult {
+impl RunResults {
     #[track_caller]
     pub fn assert_output(&self, expected: &str) {
         assert_eq!(self.output.trim(), expected.trim());
@@ -20,7 +20,7 @@ impl RunResult {
     }
 }
 
-pub fn run(source: impl AsRef<str>) -> RunResult {
+pub fn run(source: impl AsRef<str>) -> RunResults {
     let mut interpreter = Interpreter::new(InterpreterOutput::String(Vec::new()));
     let v = yarrlox::eval(
         source.as_ref(),
@@ -28,7 +28,7 @@ pub fn run(source: impl AsRef<str>) -> RunResult {
         &mut interpreter,
     );
 
-    RunResult {
+    RunResults {
         v,
         output: interpreter.get_output(),
     }
