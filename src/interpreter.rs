@@ -74,7 +74,7 @@ pub enum ExecResult {
 impl Default for Interpreter {
     fn default() -> Self {
         Self {
-            env: Env::new(),
+            env: make_global_env(),
             out: InterpreterOutput::Stdout(stdout()),
         }
     }
