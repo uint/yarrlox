@@ -41,14 +41,14 @@ fn error_handler(err: anyhow::Error) {
 
 fn run_script(path: impl AsRef<Path>) -> anyhow::Result<()> {
     let source = std::fs::read_to_string(path)?;
-    let mut interpreter = Interpreter::new();
+    let mut interpreter = Interpreter::default();
     yarrlox::eval(&source, yarrlox::errors::SimpleReporter, &mut interpreter);
 
     Ok(())
 }
 
 fn run_repl() -> anyhow::Result<()> {
-    let mut interpreter = Interpreter::new();
+    let mut interpreter = Interpreter::default();
 
     fn prompt() -> std::io::Result<()> {
         print!("> ");

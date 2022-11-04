@@ -17,18 +17,18 @@ pub fn eval<'src>(
     source: &'src str,
     error_reporter: impl ErrorReporter,
     interpreter: &mut Interpreter,
-) -> Result<Value, ()> {
+) -> Option<Value> {
     let mut parser = Parser::new(source);
 
     match parser.parse() {
         Ok(stmts) => match interpreter.interpret(&stmts) {
-            Ok(v) => Ok(v),
+            Ok(v) => Some(v),
             Err(errs) => {
                 for err in errs {
                     println!("{}", err);
                 }
 
-                Err(())
+                None
             }
         },
         Err(errors) => {
@@ -37,7 +37,7 @@ pub fn eval<'src>(
                 error_reporter.report(source, &err);
             }
 
-            Err(())
+            None
         }
     }
 }

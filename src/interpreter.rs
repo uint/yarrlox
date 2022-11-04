@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::io::{stdout, Stdout, Write};
 use std::rc::Rc;
 
 use crate::ast::*;
@@ -38,9 +39,31 @@ macro_rules! impl_comparison {
     };
 }
 
+pub enum InterpreterOutput {
+    Stdout(Stdout),
+    String(Vec<u8>),
+}
+
+impl Write for InterpreterOutput {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        match self {
+            InterpreterOutput::Stdout(stdout) => stdout.write(buf),
+            InterpreterOutput::String(bufw) => bufw.write(buf),
+        }
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        match self {
+            InterpreterOutput::Stdout(stdout) => stdout.flush(),
+            InterpreterOutput::String(bufw) => bufw.flush(),
+        }
+    }
+}
+
 pub struct Interpreter {
     //globals: Rc<RefCell<Env>>,
     env: Rc<RefCell<Env>>,
+    out: InterpreterOutput,
 }
 
 pub enum ExecResult {
@@ -48,16 +71,30 @@ pub enum ExecResult {
     LoopUnwind,
 }
 
+impl Default for Interpreter {
+    fn default() -> Self {
+        Self {
+            env: Env::new(),
+            out: InterpreterOutput::Stdout(stdout()),
+        }
+    }
+}
+
+fn make_global_env() -> Rc<RefCell<Env>> {
+    let env = Env::new();
+
+    env.borrow_mut()
+        .define("clock", Value::Callable(Rc::new(Clock)));
+
+    env
+}
+
 impl<'v> Interpreter {
-    pub fn new() -> Self {
-        let env = Env::new();
-
-        env.borrow_mut()
-            .define("clock", Value::Callable(Rc::new(Clock)));
-
+    pub fn new(out: InterpreterOutput) -> Self {
         Self {
             //globals: Rc::clone(&env),
-            env,
+            env: make_global_env(),
+            out,
         }
     }
 
@@ -79,6 +116,16 @@ impl<'v> Interpreter {
                 .get(0)
                 .map(InterpreterError::ret)
                 .unwrap_or(Value::Nil))
+        }
+    }
+
+    pub fn get_output(&mut self) -> String {
+        match &mut self.out {
+            InterpreterOutput::Stdout(_) => String::new(),
+            InterpreterOutput::String(s) => {
+                let bytes = std::mem::replace(s, Vec::new());
+                String::from_utf8(bytes).unwrap()
+            }
         }
     }
 
@@ -178,7 +225,9 @@ impl<'v> Interpreter {
     }
 
     fn print(&mut self, expr: &Expr) -> Result<(), InterpreterError> {
-        println!("{}", self.interpret_expr(expr)?);
+        let v = self.interpret_expr(expr)?;
+
+        writeln!(&mut self.out, "{}", v).unwrap();
 
         Ok(())
     }

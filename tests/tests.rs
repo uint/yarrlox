@@ -1,19 +1,89 @@
-use std::{
-    io::{self, Write},
-    path::Path,
+use yarrlox::{
+    interpreter::{Interpreter, InterpreterOutput},
+    value::Value,
 };
 
-use yarrlox::{interpreter::Interpreter, value::Value};
+struct RunResult {
+    v: Option<Value>,
+    output: String,
+}
 
-fn run_script(path: impl AsRef<Path>) -> anyhow::Result<Value> {
-    let source = std::fs::read_to_string(path)?;
-    let mut interpreter = Interpreter::new();
-    let v = yarrlox::eval(&source, yarrlox::errors::SimpleReporter, &mut interpreter).unwrap();
+impl RunResult {
+    #[track_caller]
+    fn assert_output(&self, expected: &str) {
+        assert_eq!(self.output.trim(), expected.trim());
+    }
 
-    Ok(v)
+    #[track_caller]
+    fn assert_v(&self, expected: Value) {
+        assert_eq!(self.v.clone().unwrap(), expected);
+    }
+}
+
+fn run(source: impl AsRef<str>) -> RunResult {
+    let mut interpreter = Interpreter::new(InterpreterOutput::String(Vec::new()));
+    let v = yarrlox::eval(
+        source.as_ref(),
+        yarrlox::errors::SimpleReporter,
+        &mut interpreter,
+    );
+
+    RunResult {
+        v,
+        output: interpreter.get_output(),
+    }
 }
 
 #[test]
 fn closure() {
-    assert_eq!(run_script("scripts/closure.lox").unwrap(), Value::Num(5.));
+    let closure = r#"
+fun fun_gen(x) {
+    // this function should capture the local x = 5 variable
+    fun print_x() {
+        return x;
+    }
+
+    return print_x;
+}
+
+var fn = fun_gen(5);
+
+return fn();
+    "#;
+
+    run(closure).assert_v(Value::Num(5.));
+}
+
+#[test]
+fn fib() {
+    let fib = r#"
+fun fib(n) {
+  if (n <= 1) return n;
+  return fib(n - 2) + fib(n - 1);
+}
+
+for (var i = 0; i < 15; i = i + 1) {
+  print fib(i);
+}
+    "#;
+
+    run(fib).assert_output(
+        r#"
+0
+1
+1
+2
+3
+5
+8
+13
+21
+34
+55
+89
+144
+233
+377
+    "#,
+    );
 }
