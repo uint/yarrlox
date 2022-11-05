@@ -18,6 +18,8 @@ impl<'src> Parser<'src> {
         }
     }
 
+    /// Recover from a syntax error by entering panic mode and discarding tokens
+    /// until a (likely) statement boundary is found.
     fn synchronize(&mut self) {
         if let Some(mut previous) = self.lexer.next() {
             while let Some(token) = self.lexer.peek() {
@@ -44,7 +46,7 @@ impl<'src> Parser<'src> {
         let mut errors = Vec::new();
 
         while !self.is_at_end() {
-            match self.parse_stmt() {
+            match self.parse_decl() {
                 Ok(decl) => stmts.push(decl),
                 Err(err) => {
                     self.synchronize();
@@ -60,12 +62,11 @@ impl<'src> Parser<'src> {
         }
     }
 
-    // `declaration` in the book
-    fn parse_stmt(&mut self) -> ParseResult<'src, Stmt> {
+    fn parse_decl(&mut self) -> ParseResult<'src, Stmt> {
         let res = match self.lexer.peek().unwrap() {
             Token::Fun => self.parse_fun_decl()?,
             Token::Var => self.parse_var_decl()?,
-            _ => self.parse_stmt_sub()?,
+            _ => self.parse_stmt()?,
         };
 
         Ok(res)
@@ -137,8 +138,7 @@ impl<'src> Parser<'src> {
         res
     }
 
-    // `statement` in the book
-    fn parse_stmt_sub(&mut self) -> ParseResult<'src, Stmt> {
+    fn parse_stmt(&mut self) -> ParseResult<'src, Stmt> {
         match self.lexer.peek().unwrap() {
             Token::For => self.parse_for_loop(),
             Token::If => self.parse_if(),
@@ -183,7 +183,7 @@ impl<'src> Parser<'src> {
         self.expect(Token::RightParen)?;
 
         self.loop_depth += 1;
-        let body = self.parse_stmt_sub();
+        let body = self.parse_stmt();
         self.loop_depth -= 1;
         let mut body = body?;
 
@@ -210,9 +210,9 @@ impl<'src> Parser<'src> {
         let condition = self.parse_expr()?;
         self.expect(Token::RightParen)?;
 
-        let then_branch = Box::new(self.parse_stmt_sub()?);
+        let then_branch = Box::new(self.parse_stmt()?);
         let else_branch = if self.expect(Token::Else).is_ok() {
-            Some(Box::new(self.parse_stmt_sub()?))
+            Some(Box::new(self.parse_stmt()?))
         } else {
             None
         };
@@ -232,7 +232,7 @@ impl<'src> Parser<'src> {
         self.expect(Token::RightParen)?;
 
         self.loop_depth += 1;
-        let body = self.parse_stmt_sub();
+        let body = self.parse_stmt();
         self.loop_depth -= 1;
         let body = Box::new(body?);
 
@@ -266,7 +266,7 @@ impl<'src> Parser<'src> {
 
         let mut stmts = vec![];
         while !matches!(self.lexer.peek(), Some(Token::RightBrace) | None) {
-            stmts.push(self.parse_stmt()?);
+            stmts.push(self.parse_decl()?);
         }
 
         self.lexer
