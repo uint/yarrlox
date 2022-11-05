@@ -13,23 +13,23 @@ use yarrlox::{
 
 #[test]
 fn var_definition() {
-    let closure = r#"
+    let src = r#"
 var x = 5;
 return x;
 "#;
 
-    run(closure).assert_v(Value::Num(5.));
+    run(src).assert_v(Value::Num(5.));
 }
 
 #[test]
 fn type_mismatch() {
-    let closure = r#"
+    let src = r#"
 var x = 5;
 var y = "asd";
 return x + y;
 "#;
 
-    run(closure).assert_runtime_err(&[InterpreterError::TypeError {
+    run(src).assert_runtime_err(&[InterpreterError::TypeError {
         expected: &[Type::Num],
         found: Type::String,
     }]);
@@ -37,13 +37,13 @@ return x + y;
 
 #[test]
 fn multiple_syntax_errors() {
-    let closure = r#"
+    let src = r#"
 var y x;
 var x =;
 return x + y;
 "#;
 
-    run(closure).assert_syn_err(&[
+    run(src).assert_syn_err(&[
         ParserErrorKind::UnexpectedToken,
         ParserErrorKind::UnexpectedToken,
     ]);
@@ -51,28 +51,28 @@ return x + y;
 
 #[test]
 fn undefined_var_is_nil() {
-    let closure = r#"
+    let src = r#"
 return x;
 "#;
 
-    run(closure).assert_v(Value::Nil);
+    run(src).assert_v(Value::Nil);
 }
 
 #[test]
 fn var_out_of_scope() {
-    let closure = r#"
+    let src = r#"
 {
   var x = 5;
 }
 return x;
 "#;
 
-    run(closure).assert_v(Value::Nil);
+    run(src).assert_v(Value::Nil);
 }
 
 #[test]
 fn shadowing() {
-    let closure = r#"
+    let src = r#"
 var x = 5;
 
 {
@@ -83,14 +83,14 @@ var x = 5;
 return x;
 "#;
 
-    let run = run(closure);
+    let run = run(src);
     run.assert_output("10");
     run.assert_v(Value::Num(5.));
 }
 
 #[test]
 fn mutation_in_a_scope() {
-    let closure = r#"
+    let src = r#"
 var x = 5;
 
 {
@@ -101,23 +101,23 @@ var x = 5;
 return x;
 "#;
 
-    let run = run(closure);
+    let run = run(src);
     run.assert_output("10");
     run.assert_v(Value::Num(10.));
 }
 
 #[test]
 fn string_concat() {
-    let closure = r#"
+    let src = r#"
 return "foo" + "bar";
 "#;
 
-    run(closure).assert_v(Value::string("foobar"));
+    run(src).assert_v(Value::string("foobar"));
 }
 
 #[test]
 fn fun_def() {
-    let closure = r#"
+    let src = r#"
 fun pow(x) {
   return x * x;
 }
@@ -125,12 +125,12 @@ fun pow(x) {
 return pow(5);
 "#;
 
-    run(closure).assert_v(Value::Num(25.));
+    run(src).assert_v(Value::Num(25.));
 }
 
 #[test]
 fn partial_application() {
-    let closure = r#"
+    let src = r#"
 fun adder(x) {
   fun result(a) {
     return x + a;
@@ -143,12 +143,12 @@ var my_adder = adder(3);
 return my_adder(5);
 "#;
 
-    run(closure).assert_v(Value::Num(8.));
+    run(src).assert_v(Value::Num(8.));
 }
 
 #[test]
 fn fun_with_fun_as_arg() {
-    let closure = r#"
+    let src = r#"
 fun inc(x) {
   return x + 1;
 }
@@ -160,12 +160,12 @@ fun applier(fn, el) {
 return applier(inc, 5);
 "#;
 
-    run(closure).assert_v(Value::Num(6.));
+    run(src).assert_v(Value::Num(6.));
 }
 
 #[test]
 fn closure() {
-    let closure = r#"
+    let src = r#"
 fun fun_gen(x) {
   // this function should capture the local x = 5 variable
   fun print_x() {
@@ -180,7 +180,7 @@ var fn = fun_gen(5);
 return fn();
     "#;
 
-    run(closure).assert_v(Value::Num(5.));
+    run(src).assert_v(Value::Num(5.));
 }
 
 #[test]
