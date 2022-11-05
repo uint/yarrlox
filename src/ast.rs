@@ -8,7 +8,7 @@
 use std::ops::Range;
 
 structstruck::strike! {
-    #[strikethrough[derive(Clone, Debug, PartialEq)]]
+    #[strikethrough[derive(Clone, Debug, PartialEq, Eq)]]
     pub enum Expr {
         Assign(pub struct {
             pub name: Identifier,

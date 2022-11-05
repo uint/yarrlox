@@ -94,7 +94,7 @@ impl Callable for Function {
 
 // -- Built-ins --
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Clock;
 
 impl Callable for Clock {

@@ -32,7 +32,7 @@ impl Env {
             return v.clone();
         }
 
-        let mut scope = self.up.as_ref().map(|up| Rc::clone(up));
+        let mut scope = self.up.as_ref().map(Rc::clone);
 
         while let Some(s) = scope {
             if let Some(v) = s.borrow().names.get(name) {
@@ -45,6 +45,7 @@ impl Env {
     }
 
     pub fn assign(&mut self, name: String, value: Value) -> Result<(), EnvError> {
+        #[allow(clippy::map_entry)] // applying this lint would mean an extra string copy
         if self.names.contains_key(&name) {
             self.names.insert(name, value);
             return Ok(());
