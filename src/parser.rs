@@ -41,7 +41,7 @@ impl<'src> Parser<'src> {
         self.lexer.peek().is_none()
     }
 
-    pub fn parse(&mut self) -> Result<Vec<Stmt>, Vec<ParserError>> {
+    pub fn parse(&mut self) -> Result<Vec<Stmt>, Vec<ParserError<'src>>> {
         let mut stmts = Vec::new();
         let mut errors = Vec::new();
 

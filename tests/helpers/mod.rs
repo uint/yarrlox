@@ -1,14 +1,15 @@
 use yarrlox::{
-    interpreter::{Interpreter, InterpreterOutput},
+    interpreter::{Interpreter, InterpreterError, InterpreterOutput},
     value::Value,
+    EvalErrors, ParserErrorKind,
 };
 
-pub struct RunResults {
-    v: Option<Value>,
+pub struct RunResults<'src> {
+    v: Result<Value, EvalErrors<'src>>,
     output: String,
 }
 
-impl RunResults {
+impl<'src> RunResults<'src> {
     #[track_caller]
     pub fn assert_output(&self, expected: &str) {
         assert_eq!(self.output.trim(), expected.trim());
@@ -16,11 +17,29 @@ impl RunResults {
 
     #[track_caller]
     pub fn assert_v(&self, expected: Value) {
-        assert_eq!(self.v.clone().unwrap(), expected);
+        assert_eq!(self.v.as_ref().cloned().unwrap(), expected);
+    }
+
+    #[track_caller]
+    pub fn assert_syn_err(self, expected: &[ParserErrorKind]) {
+        assert_eq!(
+            self.v
+                .unwrap_err()
+                .unwrap_syn()
+                .into_iter()
+                .map(|err| err.error_kind)
+                .collect::<Vec<_>>(),
+            expected
+        );
+    }
+
+    #[track_caller]
+    pub fn assert_runtime_err(self, expected: &[InterpreterError]) {
+        assert_eq!(self.v.unwrap_err().unwrap_runtime(), expected);
     }
 }
 
-pub fn run(source: impl AsRef<str>) -> RunResults {
+pub fn run(source: &str) -> RunResults<'_> {
     let mut interpreter = Interpreter::new(InterpreterOutput::String(Vec::new()));
     let v = yarrlox::eval(
         source.as_ref(),

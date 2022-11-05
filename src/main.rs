@@ -6,7 +6,7 @@ use std::{
 
 use clap::Parser;
 
-use yarrlox::interpreter::Interpreter;
+use yarrlox::{interpreter::Interpreter, EvalErrors};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -33,7 +33,6 @@ fn run_cli() -> anyhow::Result<()> {
 }
 
 fn error_handler(err: anyhow::Error) {
-    eprintln!("yarrlox encountered a critical error! Argh!");
     eprintln!("{}", err);
 
     exit(42)
@@ -42,9 +41,11 @@ fn error_handler(err: anyhow::Error) {
 fn run_script(path: impl AsRef<Path>) -> anyhow::Result<()> {
     let source = std::fs::read_to_string(path)?;
     let mut interpreter = Interpreter::default();
-    yarrlox::eval(&source, yarrlox::errors::SimpleReporter, &mut interpreter);
-
-    Ok(())
+    match yarrlox::eval(&source, yarrlox::errors::SimpleReporter, &mut interpreter) {
+        Ok(_) => Ok(()),
+        Err(EvalErrors::Syntax(_)) => Err(anyhow::anyhow!("syntax errors present")),
+        Err(EvalErrors::Interpreter(_)) => Err(anyhow::anyhow!("runtime errors present")),
+    }
 }
 
 fn run_repl() -> anyhow::Result<()> {
@@ -62,7 +63,7 @@ fn run_repl() -> anyhow::Result<()> {
     for line in stdin {
         match line {
             Ok(line) => {
-                yarrlox::eval(&line, yarrlox::errors::SimpleReporter, &mut interpreter);
+                let _ = yarrlox::eval(&line, yarrlox::errors::SimpleReporter, &mut interpreter);
             }
             Err(e) => eprintln!("Error reading line: {}", e),
         }

@@ -4,8 +4,8 @@ use crate::token::SpannedToken;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Error<'src, E> {
-    token: Option<SpannedToken<'src>>,
-    error_kind: E,
+    pub token: Option<SpannedToken<'src>>,
+    pub error_kind: E,
 }
 
 impl<'src, E: Display + std::error::Error> Error<'src, E> {

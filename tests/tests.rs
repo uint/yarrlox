@@ -2,7 +2,10 @@ mod helpers;
 
 use helpers::run;
 
-use yarrlox::value::Value;
+use yarrlox::{
+    value::{Type, Value},
+    InterpreterError, ParserErrorKind,
+};
 
 // These aren't meant to be complete branch coverage tests or anything like that. These
 // are smoke tests for key functionality. There's the official Lox test suite already.
@@ -16,6 +19,34 @@ return x;
 "#;
 
     run(closure).assert_v(Value::Num(5.));
+}
+
+#[test]
+fn type_mismatch() {
+    let closure = r#"
+var x = 5;
+var y = "asd";
+return x + y;
+"#;
+
+    run(closure).assert_runtime_err(&[InterpreterError::TypeError {
+        expected: &[Type::Num],
+        found: Type::String,
+    }]);
+}
+
+#[test]
+fn multiple_syntax_errors() {
+    let closure = r#"
+var y x;
+var x =;
+return x + y;
+"#;
+
+    run(closure).assert_syn_err(&[
+        ParserErrorKind::UnexpectedToken,
+        ParserErrorKind::UnexpectedToken,
+    ]);
 }
 
 #[test]
