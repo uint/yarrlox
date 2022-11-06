@@ -8,6 +8,7 @@ use crate::token::{SpannedToken, Token};
 pub struct Parser<'src> {
     lexer: Lexer<'src>,
     loop_depth: u32,
+    next_var_expr_id: u32,
 }
 
 impl<'src> Parser<'src> {
@@ -15,6 +16,7 @@ impl<'src> Parser<'src> {
         Self {
             lexer: Lexer::new(src),
             loop_depth: 0,
+            next_var_expr_id: 0,
         }
     }
 
@@ -101,11 +103,31 @@ impl<'src> Parser<'src> {
         Ok(Stmt::Function(Function { name, params, body }))
     }
 
-    fn parse_ident(&mut self) -> ParseResult<'src, Identifier> {
+    fn parse_ident(&mut self) -> ParseResult<'src, String> {
         match self.lexer.peek() {
             Some(Token::Identifier(ident)) => {
                 self.lexer.next().unwrap();
-                Ok(Identifier(ident.to_string()))
+                Ok(ident.to_string())
+            }
+            Some(_) => Err(Error::new(
+                self.lexer.peek_spanned(),
+                ParserErrorKind::UnexpectedToken,
+            )),
+            None => Err(Error::new(None, ParserErrorKind::UnexpectedEof)),
+        }
+    }
+
+    fn parse_ref(&mut self) -> ParseResult<'src, Reference> {
+        match self.lexer.peek() {
+            Some(Token::Identifier(ident)) => {
+                self.lexer.next().unwrap();
+                let reference = Reference {
+                    id: self.next_var_expr_id,
+                    ident: ident.to_string(),
+                };
+                self.next_var_expr_id += 1;
+
+                Ok(reference)
             }
             Some(_) => Err(Error::new(
                 self.lexer.peek_spanned(),
@@ -123,7 +145,7 @@ impl<'src> Parser<'src> {
                 token: Token::Identifier(ident),
                 ..
             }) => Ok(Stmt::Var {
-                name: Identifier(ident.to_string()),
+                name: ident.to_string(),
                 initializer: if self.expect(Token::Equal).is_ok() {
                     Some(self.parse_expr()?)
                 } else {
@@ -425,13 +447,24 @@ impl<'src> Parser<'src> {
         Ok(match token.token {
             Token::NumLit(l) => Expr::Literal(Literal::NumLit(NumLit(l.to_string()))),
             Token::StringLit(l) => Expr::Literal(Literal::StringLit(StringLit(l.to_string()))),
-            Token::Identifier(l) => Expr::Literal(Literal::Identifier(Identifier(l.to_string()))),
+            Token::Identifier(l) => self.make_var_expr(l),
             Token::Nil => Expr::Literal(Literal::Nil),
             Token::True => Expr::Literal(Literal::Bool(true)),
             Token::False => Expr::Literal(Literal::Bool(false)),
             Token::LeftParen => self.parse_paren_expr()?,
             _ => Err(Error::new(token, ParserErrorKind::UnexpectedToken))?,
         })
+    }
+
+    fn make_var_expr(&mut self, ident: &str) -> Expr {
+        let expr = Expr::Literal(Literal::Identifier(Reference {
+            id: self.next_var_expr_id,
+            ident: ident.to_string(),
+        }));
+
+        self.next_var_expr_id += 1;
+
+        expr
     }
 
     fn parse_paren_expr(&mut self) -> ParseResult<'src> {
@@ -584,9 +617,10 @@ mod tests {
             right: Box::new(Expr::Grouping(Grouping {
                 expr: Box::new(Expr::Binary(Binary {
                     left: Box::new(Expr::Literal(Literal::NumLit(NumLit("2".to_string())))),
-                    right: Box::new(Expr::Literal(Literal::Identifier(Identifier(
-                        "foo".to_string(),
-                    )))),
+                    right: Box::new(Expr::Literal(Literal::Identifier(Reference {
+                        ident: "foo".to_string(),
+                        id: 0,
+                    }))),
                     op: BinaryOp::Add,
                 })),
             })),

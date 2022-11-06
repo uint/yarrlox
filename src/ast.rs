@@ -11,7 +11,7 @@ structstruck::strike! {
     #[strikethrough[derive(Clone, Debug, PartialEq, Eq)]]
     pub enum Expr {
         Assign(pub struct {
-            pub name: Identifier,
+            pub name: Reference,
             pub value: Box<Expr>,
         }),
         Binary(pub struct {
@@ -35,7 +35,7 @@ structstruck::strike! {
         Literal(pub enum {
             StringLit(pub struct(pub String)),
             NumLit(pub struct(pub String)),
-            Identifier(pub struct(pub String)),
+            Identifier(Reference),
             Nil,
             Bool(bool),
         }),
@@ -57,14 +57,26 @@ structstruck::strike! {
     }
 }
 
+#[derive(Clone, Debug, Eq)]
+pub struct Reference {
+    pub id: u32,
+    pub ident: String,
+}
+
+impl PartialEq for Reference {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
 structstruck::strike! {
     #[strikethrough[derive(Clone, Debug, PartialEq)]]
     pub enum Stmt {
         Block(Vec<Stmt>),
         Expr(Expr),
         Function (pub struct {
-            pub name: Identifier,
-            pub params: Vec<Identifier>,
+            pub name: String,
+            pub params: Vec<String>,
             pub body: Vec<Stmt>,
         }),
         If {
@@ -75,7 +87,7 @@ structstruck::strike! {
         Print(Expr),
         Return(Option<Expr>),
         Var {
-            name: Identifier,
+            name: String,
             initializer: Option<Expr>,
         },
         While {

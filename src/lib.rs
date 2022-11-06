@@ -5,6 +5,7 @@ pub mod errors;
 pub mod interpreter;
 mod lexer;
 mod parser;
+mod resolver;
 mod token;
 pub mod value;
 

@@ -39,27 +39,6 @@ macro_rules! impl_comparison {
     };
 }
 
-pub enum InterpreterOutput {
-    Stdout(Stdout),
-    String(Vec<u8>),
-}
-
-impl Write for InterpreterOutput {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        match self {
-            InterpreterOutput::Stdout(stdout) => stdout.write(buf),
-            InterpreterOutput::String(bufw) => bufw.write(buf),
-        }
-    }
-
-    fn flush(&mut self) -> std::io::Result<()> {
-        match self {
-            InterpreterOutput::Stdout(stdout) => stdout.flush(),
-            InterpreterOutput::String(bufw) => bufw.flush(),
-        }
-    }
-}
-
 pub struct Interpreter {
     //globals: Rc<RefCell<Env>>,
     env: Rc<RefCell<Env>>,
@@ -136,10 +115,7 @@ impl<'v> Interpreter {
             }
             Stmt::Print(expr) => self.print(expr)?,
             Stmt::Return(expr) => self.ret(expr.into())?,
-            Stmt::Var {
-                name: Identifier(name),
-                initializer,
-            } => {
+            Stmt::Var { name, initializer } => {
                 let value = match initializer {
                     Some(init) => self.interpret_expr(init)?,
                     None => Value::Nil,
@@ -178,7 +154,7 @@ impl<'v> Interpreter {
         let fun_env = Rc::clone(&self.env);
 
         self.env.borrow_mut().define(
-            fun.name.0.clone(),
+            fun.name.clone(),
             Value::Callable(Rc::new(crate::callable::Function::new(
                 fun.clone(),
                 fun_env,
@@ -189,7 +165,7 @@ impl<'v> Interpreter {
     pub fn execute_fun_call(
         &mut self,
         stmts: &[Stmt],
-        params: &[Identifier],
+        params: &[String],
         closure: Rc<RefCell<Env>>,
         args: Vec<Value>,
     ) -> Result<Value, InterpreterError> {
@@ -197,7 +173,7 @@ impl<'v> Interpreter {
         let prev_env = std::mem::replace(&mut self.env, new_env);
 
         for (param, arg) in params.iter().zip(args) {
-            self.env.borrow_mut().define(param.0.clone(), arg);
+            self.env.borrow_mut().define(param.clone(), arg);
         }
 
         let val = match self.execute_block(stmts) {
@@ -259,7 +235,7 @@ impl<'v> Interpreter {
 
         Ok(match expr {
             Expr::Assign(Assign {
-                name: Identifier(ident),
+                name: Reference { id, ident },
                 value,
             }) => {
                 let value = self.interpret_expr(value)?;
@@ -271,7 +247,9 @@ impl<'v> Interpreter {
             Expr::Literal(l) => match l {
                 Literal::StringLit(StringLit(l)) => Value::string(l),
                 Literal::NumLit(NumLit(l)) => Num(l.parse().unwrap()),
-                Literal::Identifier(Identifier(ident)) => self.env.borrow().get(ident).clone(),
+                Literal::Identifier(Reference { id, ident }) => {
+                    self.env.borrow().get(ident).clone()
+                }
                 Literal::Nil => Value::Nil,
                 Literal::Bool(b) => Value::Bool(*b),
             },
@@ -369,6 +347,27 @@ fn is_truthy(val: &Value) -> bool {
 
 fn is_equal(left: &Value, right: &Value) -> bool {
     left == right
+}
+
+pub enum InterpreterOutput {
+    Stdout(Stdout),
+    String(Vec<u8>),
+}
+
+impl Write for InterpreterOutput {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        match self {
+            InterpreterOutput::Stdout(stdout) => stdout.write(buf),
+            InterpreterOutput::String(bufw) => bufw.write(buf),
+        }
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        match self {
+            InterpreterOutput::Stdout(stdout) => stdout.flush(),
+            InterpreterOutput::String(bufw) => bufw.flush(),
+        }
+    }
 }
 
 #[derive(thiserror::Error, Debug, Clone, PartialEq, Eq)]

@@ -216,3 +216,45 @@ for (var i = 0; i < 15; i = i + 1) {
     "#,
     );
 }
+
+#[test]
+fn closure_reassignment() {
+    let src = r#"
+var a = "global";
+{
+  fun showA() {
+    print a;
+  }
+
+  showA();
+  a = "block";
+  showA();
+}
+    "#;
+
+    run(src).assert_output(
+        r#""global"
+"block""#,
+    );
+}
+
+#[test]
+fn resolving_and_binding() {
+    let src = r#"
+var a = "global";
+{
+  fun showA() {
+    print a;
+  }
+
+  showA();
+  var a = "block";
+  showA();
+}
+    "#;
+
+    run(src).assert_output(
+        r#""global"
+"global""#,
+    );
+}
