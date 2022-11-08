@@ -8,7 +8,7 @@ use crate::token::{SpannedToken, Token};
 pub struct Parser<'src> {
     lexer: Lexer<'src>,
     loop_depth: u32,
-    next_var_expr_id: u32,
+    next_var_expr_id: usize,
 }
 
 impl<'src> Parser<'src> {

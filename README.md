@@ -48,6 +48,12 @@ cargo install --path .
   pointers. This probably has implications about cycles and all that jazz. It's
   probably not ideal without deeper thought, but it lets me get on with the book
   without spending too much time here.
+- In Rust, there's no built-in mechanism for making every instance of a type
+  uniquely identifiable. That's why the parser assigns a unique ID to every
+  variable reference. Since those IDs are contiguous, our `locals` data
+  collected by the resolver doesn't need to be a hashmap. It's a `Vec` instead.
+- No visitor pattern in the tree-walk interpreter. I couldn't find enough
+  justification for doing that and opted for enums and pattern-matching instead.
 
 ## License
 

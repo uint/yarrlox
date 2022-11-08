@@ -59,7 +59,7 @@ structstruck::strike! {
 
 #[derive(Clone, Debug, Eq)]
 pub struct Reference {
-    pub id: u32,
+    pub id: usize,
     pub ident: String,
 }
 
