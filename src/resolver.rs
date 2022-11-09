@@ -24,6 +24,9 @@ impl<'ast> Resolver<'ast> {
     fn new(len: usize) -> Self {
         let mut locals = Vec::with_capacity(len);
 
+        // TODO: there's probably some nicer way to do this using `MaybeUninit`
+        // TODO: operating on an uninitialized array should probably not be done in
+        // safe code
         unsafe {
             locals.set_len(len);
         }
