@@ -10,13 +10,14 @@ mod token;
 pub mod value;
 
 use errors::ErrorReporter;
-use resolver::{resolve, ResolverError};
+use resolver::resolve;
 use value::Value;
 
 use crate::{interpreter::Interpreter, parser::Parser};
 
 pub use interpreter::InterpreterError;
 pub use parser::{ParserError, ParserErrorKind};
+pub use resolver::ResolverError;
 
 pub fn eval<'src>(
     source: &'src str,
@@ -63,6 +64,14 @@ pub enum EvalErrors<'src> {
 impl<'src> EvalErrors<'src> {
     pub fn unwrap_syn(self) -> Vec<ParserError<'src>> {
         if let Self::Syntax(err) = self {
+            err
+        } else {
+            panic!()
+        }
+    }
+
+    pub fn unwrap_resolution(self) -> ResolverError {
+        if let Self::Resolution(err) = self {
             err
         } else {
             panic!()

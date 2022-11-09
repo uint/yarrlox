@@ -80,7 +80,7 @@ impl<'ast> Resolver<'ast> {
     }
 
     fn resolve_fun_decl(&mut self, fun: &'ast Function) -> ResolverResult {
-        self.declare(&fun.name);
+        self.declare(&fun.name)?;
         self.define(&fun.name);
         self.resolve_fun(fun)?;
 
@@ -90,7 +90,7 @@ impl<'ast> Resolver<'ast> {
     fn resolve_fun(&mut self, fun: &'ast Function) -> ResolverResult {
         self.begin_scope();
         for param in &fun.params {
-            self.declare(&param);
+            self.declare(&param)?;
             self.define(&param);
         }
         self.resolve(&fun.body)?;
@@ -125,7 +125,7 @@ impl<'ast> Resolver<'ast> {
     }
 
     fn resolve_var_stmt(&mut self, name: &'ast str, initializer: Option<&Expr>) -> ResolverResult {
-        self.declare(name);
+        self.declare(name)?;
         if let Some(init) = initializer {
             self.resolve_expr(init)?;
         }
@@ -157,15 +157,18 @@ impl<'ast> Resolver<'ast> {
         self.locals[reference.id] = None;
     }
 
-    fn declare(&mut self, name: &'ast str) {
-        eprintln!("declare {}", name);
+    fn declare(&mut self, name: &'ast str) -> ResolverResult {
         if let Some(scope) = self.scopes.get_mut(0) {
+            if scope.contains_key(name) {
+                return Err(ResolverError::MultipleDeclaration(name.to_string()));
+            }
             scope.insert(name, false);
         }
+
+        Ok(())
     }
 
     fn define(&mut self, name: &'ast str) {
-        eprintln!("define {}", name);
         if let Some(scope) = self.scopes.get_mut(0) {
             scope.insert(name, true);
         }
@@ -185,4 +188,6 @@ type ResolverResult = Result<(), ResolverError>;
 pub enum ResolverError {
     #[error("Can't read local variable in its own initializer.")]
     SelfInitialize,
+    #[error("Variable `{0}` defined more than once in the same scope")]
+    MultipleDeclaration(String),
 }

@@ -1,7 +1,7 @@
 use yarrlox::{
     interpreter::{Interpreter, InterpreterError, InterpreterOutput},
     value::Value,
-    EvalErrors, ParserErrorKind,
+    EvalErrors, ParserErrorKind, ResolverError,
 };
 
 pub struct RunResults<'src> {
@@ -34,6 +34,11 @@ impl<'src> RunResults<'src> {
                 .collect::<Vec<_>>(),
             expected
         );
+    }
+
+    #[track_caller]
+    pub fn assert_resolution_err(self, expected: ResolverError) {
+        assert_eq!(self.v.unwrap_err().unwrap_resolution(), expected);
     }
 
     #[track_caller]

@@ -258,3 +258,15 @@ var a = "global";
 "global""#,
     );
 }
+
+#[test]
+fn multiple_assignment_in_same_scope_disallowed() {
+    let src = r#"
+{
+  var a = "first";
+  var a = "second";
+}
+    "#;
+
+    run(src).assert_resolution_err(yarrlox::ResolverError::MultipleDeclaration("a".to_string()));
+}
