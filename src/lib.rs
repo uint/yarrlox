@@ -28,11 +28,17 @@ pub fn eval<'src>(
 
     match parser.parse() {
         Ok(stmts) => {
-            let locals = resolve(&stmts, parser.var_count())?;
+            let locals = resolve(&stmts, parser.var_count());
+            if let Err(err) = &locals {
+                // TODO: use the error reporter here
+                println!("{}", err);
+            }
+            let locals = locals?;
             match interpreter.interpret(&stmts, locals) {
                 Ok(v) => Ok(v),
                 Err(errs) => {
                     for err in errs.iter() {
+                        // TODO: use the error reporter here
                         println!("{}", err);
                     }
 
