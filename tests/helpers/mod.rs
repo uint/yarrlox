@@ -38,11 +38,6 @@ impl<'src> RunResults<'src> {
     }
 
     #[track_caller]
-    pub fn assert_resolution_err(self, expected: ResolverError) {
-        assert_eq!(self.v.unwrap_err().unwrap_resolution(), expected);
-    }
-
-    #[track_caller]
     pub fn assert_runtime_err(self, expected: &[InterpreterError]) {
         assert_eq!(self.v.unwrap_err().unwrap_runtime(), expected);
     }

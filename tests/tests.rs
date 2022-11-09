@@ -268,5 +268,7 @@ fn multiple_assignment_in_same_scope_disallowed() {
 }
     "#;
 
-    run(src).assert_resolution_err(yarrlox::ResolverError::MultipleDeclaration("a".to_string()));
+    run(src).assert_runtime_err(&[InterpreterError::Resolution(
+        yarrlox::ResolverError::MultipleDeclaration("a".to_string()),
+    )]);
 }
