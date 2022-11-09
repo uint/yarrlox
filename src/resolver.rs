@@ -9,14 +9,14 @@ use std::collections::{HashMap, VecDeque};
 
 use crate::ast::*;
 
-pub fn resolve(ast: &[Stmt], ref_count: usize) -> Result<Vec<usize>, ResolverError> {
+pub fn resolve(ast: &[Stmt], ref_count: usize) -> Result<Vec<Option<usize>>, ResolverError> {
     let mut resolver = Resolver::new(ref_count);
     resolver.resolve(ast)?;
     Ok(resolver.locals)
 }
 
 struct Resolver<'ast> {
-    locals: Vec<usize>,
+    locals: Vec<Option<usize>>,
     scopes: VecDeque<HashMap<&'ast str, bool>>,
 }
 
@@ -103,7 +103,7 @@ impl<'ast> Resolver<'ast> {
         match expr {
             Expr::Assign(Assign { name, value }) => {
                 self.resolve_expr(value)?;
-                self.resolve_local(name)?;
+                self.resolve_local(name);
             }
             Expr::Literal(Literal::Identifier(reference)) => self.resolve_var_expr(reference)?,
             Expr::Literal(_) => {}
@@ -141,34 +141,35 @@ impl<'ast> Resolver<'ast> {
             }
         }
 
-        self.resolve_local(reference)?;
+        self.resolve_local(reference);
 
         Ok(())
     }
 
-    fn resolve_local(&mut self, reference: &Reference) -> ResolverResult {
+    fn resolve_local(&mut self, reference: &Reference) {
         for (ix, scope) in self.scopes.iter().enumerate() {
             if scope.contains_key(reference.ident.as_str()) {
-                self.locals[reference.id] = ix;
-                return Ok(());
+                self.locals[reference.id] = Some(ix);
+                return;
             }
         }
 
-        Err(ResolverError::NotFound(reference.ident.clone()))
+        self.locals[reference.id] = None;
     }
 
     fn declare(&mut self, name: &'ast str) {
+        eprintln!("declare {}", name);
         if let Some(scope) = self.scopes.get_mut(0) {
             scope.insert(name, false);
         }
     }
 
     fn define(&mut self, name: &'ast str) {
+        eprintln!("define {}", name);
         if let Some(scope) = self.scopes.get_mut(0) {
             scope.insert(name, true);
         }
     }
-
     fn begin_scope(&mut self) {
         self.scopes.push_front(HashMap::new())
     }
@@ -184,6 +185,4 @@ type ResolverResult = Result<(), ResolverError>;
 pub enum ResolverError {
     #[error("Can't read local variable in its own initializer.")]
     SelfInitialize,
-    #[error("Variable `{0}` not found")]
-    NotFound(String),
 }

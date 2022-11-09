@@ -121,26 +121,6 @@ impl<'src> Parser<'src> {
         }
     }
 
-    fn parse_ref(&mut self) -> ParseResult<'src, Reference> {
-        match self.lexer.peek() {
-            Some(Token::Identifier(ident)) => {
-                self.lexer.next().unwrap();
-                let reference = Reference {
-                    id: self.next_var_expr_id,
-                    ident: ident.to_string(),
-                };
-                self.next_var_expr_id += 1;
-
-                Ok(reference)
-            }
-            Some(_) => Err(Error::new(
-                self.lexer.peek_spanned(),
-                ParserErrorKind::UnexpectedToken,
-            )),
-            None => Err(Error::new(None, ParserErrorKind::UnexpectedEof)),
-        }
-    }
-
     fn parse_var_decl(&mut self) -> ParseResult<'src, Stmt> {
         self.lexer.next().unwrap();
 

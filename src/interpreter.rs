@@ -43,7 +43,7 @@ pub struct Interpreter {
     globals: Rc<RefCell<Env>>,
     env: Rc<RefCell<Env>>,
     out: InterpreterOutput,
-    locals: Vec<usize>,
+    locals: Vec<Option<usize>>,
 }
 
 pub enum ExecResult {
@@ -68,7 +68,7 @@ impl Default for Interpreter {
             globals: Rc::clone(&env),
             env,
             out: InterpreterOutput::Stdout(stdout()),
-            ..Default::default()
+            locals: vec![],
         }
     }
 }
@@ -88,7 +88,7 @@ impl<'v> Interpreter {
     pub fn interpret(
         &mut self,
         stmts: &[Stmt],
-        locals: Vec<usize>,
+        locals: Vec<Option<usize>>,
     ) -> Result<Value, Vec<InterpreterError>> {
         self.locals = locals;
 
@@ -249,7 +249,7 @@ impl<'v> Interpreter {
 
         Ok(match expr {
             Expr::Assign(Assign {
-                name: Reference { id, ident },
+                name: Reference { ident, .. },
                 value,
             }) => {
                 let value = self.interpret_expr(value)?;
@@ -324,7 +324,7 @@ impl<'v> Interpreter {
     }
 
     fn look_up_variable(&self, Reference { id, ident }: &Reference) -> Value {
-        if let Some(distance) = self.locals.get(*id) {
+        if let Some(Some(distance)) = self.locals.get(*id) {
             self.env.borrow().get_at(*distance, ident).clone()
         } else {
             self.globals.borrow().get(ident).clone()
