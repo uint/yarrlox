@@ -4,11 +4,11 @@ use std::{
     process::exit,
 };
 
-use clap::Parser;
+use clap::Parser as ClapParser;
 
-use yarrlox::{interpreter::Interpreter, EvalErrors};
+use yarrlox::{interpreter::Interpreter, parser::Parser, EvalErrors};
 
-#[derive(Parser)]
+#[derive(ClapParser)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
     /// Script to run. If not provided, a REPL session is started
@@ -40,8 +40,14 @@ fn error_handler(err: anyhow::Error) {
 
 fn run_script(path: impl AsRef<Path>) -> anyhow::Result<()> {
     let source = std::fs::read_to_string(path)?;
+    let mut parser = Parser::new();
     let mut interpreter = Interpreter::default();
-    match yarrlox::eval(&source, yarrlox::errors::SimpleReporter, &mut interpreter) {
+    match yarrlox::eval(
+        &source,
+        yarrlox::errors::SimpleReporter,
+        &mut parser,
+        &mut interpreter,
+    ) {
         Ok(_) => Ok(()),
         Err(EvalErrors::Syntax(_)) => Err(anyhow::anyhow!("syntax errors present")),
         Err(EvalErrors::Resolution(_)) => {
@@ -52,6 +58,7 @@ fn run_script(path: impl AsRef<Path>) -> anyhow::Result<()> {
 }
 
 fn run_repl() -> anyhow::Result<()> {
+    let mut parser = Parser::new();
     let mut interpreter = Interpreter::default();
 
     fn prompt() -> std::io::Result<()> {
@@ -66,7 +73,12 @@ fn run_repl() -> anyhow::Result<()> {
     for line in stdin {
         match line {
             Ok(line) => {
-                let _ = yarrlox::eval(&line, yarrlox::errors::SimpleReporter, &mut interpreter);
+                let _ = yarrlox::eval(
+                    &line,
+                    yarrlox::errors::SimpleReporter,
+                    &mut parser,
+                    &mut interpreter,
+                );
             }
             Err(e) => eprintln!("Error reading line: {}", e),
         }

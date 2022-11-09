@@ -4,7 +4,7 @@ mod env;
 pub mod errors;
 pub mod interpreter;
 mod lexer;
-mod parser;
+pub mod parser;
 mod resolver;
 mod token;
 pub mod value;
@@ -22,11 +22,10 @@ pub use resolver::ResolverError;
 pub fn eval<'src>(
     source: &'src str,
     error_reporter: impl ErrorReporter,
+    parser: &mut Parser,
     interpreter: &mut Interpreter,
 ) -> Result<Value, EvalErrors<'src>> {
-    let mut parser = Parser::new(source);
-
-    match parser.parse() {
+    match parser.parse(source) {
         Ok(stmts) => {
             let locals = resolve(&stmts, parser.var_count());
             if let Err(err) = &locals {

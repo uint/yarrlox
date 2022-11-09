@@ -5,6 +5,7 @@ use std::rc::Rc;
 use crate::ast::*;
 use crate::callable::Clock;
 use crate::env::{Env, EnvError};
+use crate::resolver::Resolver;
 use crate::value::{Type, Value};
 
 macro_rules! impl_arithmetic {
@@ -44,6 +45,7 @@ pub struct Interpreter {
     env: Rc<RefCell<Env>>,
     out: InterpreterOutput,
     locals: Vec<Option<usize>>,
+    resolver: Resolver,
 }
 
 pub enum ExecResult {
@@ -69,6 +71,7 @@ impl Default for Interpreter {
             env,
             out: InterpreterOutput::Stdout(stdout()),
             locals: vec![],
+            resolver: Resolver::new(),
         }
     }
 }
@@ -82,6 +85,7 @@ impl Interpreter {
             env,
             out,
             locals: vec![],
+            resolver: Resolver::new(),
         }
     }
 

@@ -10,26 +10,19 @@ use std::collections::{HashMap, VecDeque};
 use crate::ast::*;
 
 pub fn resolve(ast: &[Stmt], ref_count: usize) -> Result<Vec<Option<usize>>, ResolverError> {
-    let mut resolver = Resolver::new(ref_count);
-    resolver.resolve(ast)?;
+    let mut resolver = Resolver::new();
+    resolver.resolve(ast, ref_count)?;
     Ok(resolver.locals)
 }
 
-struct Resolver<'ast> {
+pub struct Resolver {
     locals: Vec<Option<usize>>,
-    scopes: VecDeque<HashMap<&'ast str, bool>>,
+    scopes: VecDeque<HashMap<String, bool>>,
 }
 
-impl<'ast> Resolver<'ast> {
-    fn new(len: usize) -> Self {
-        let mut locals = Vec::with_capacity(len);
-
-        // TODO: there's probably some nicer way to do this using `MaybeUninit`
-        // TODO: operating on an uninitialized array should probably not be done in
-        // safe code
-        unsafe {
-            locals.set_len(len);
-        }
+impl<'ast> Resolver {
+    pub fn new() -> Self {
+        let locals = Vec::new();
 
         Self {
             locals,
@@ -37,7 +30,13 @@ impl<'ast> Resolver<'ast> {
         }
     }
 
-    fn resolve(&mut self, stmts: &'ast [Stmt]) -> ResolverResult {
+    pub fn resolve(&mut self, stmts: &'ast [Stmt], var_count: usize) -> ResolverResult {
+        self.locals.resize(var_count, None);
+
+        self.resolve_impl(stmts)
+    }
+
+    fn resolve_impl(&mut self, stmts: &'ast [Stmt]) -> ResolverResult {
         for stmt in stmts {
             self.resolve_stmt(stmt)?;
         }
@@ -49,7 +48,7 @@ impl<'ast> Resolver<'ast> {
         match stmt {
             Stmt::Block(stmts) => {
                 self.begin_scope();
-                self.resolve(stmts)?;
+                self.resolve_impl(stmts)?;
                 self.end_scope();
             }
             Stmt::Expr(expr) => self.resolve_expr(expr)?,
@@ -96,7 +95,7 @@ impl<'ast> Resolver<'ast> {
             self.declare(param)?;
             self.define(param);
         }
-        self.resolve(&fun.body)?;
+        self.resolve_impl(&fun.body)?;
         self.end_scope();
 
         Ok(())
@@ -165,7 +164,7 @@ impl<'ast> Resolver<'ast> {
             if scope.contains_key(name) {
                 return Err(ResolverError::MultipleDeclaration(name.to_string()));
             }
-            scope.insert(name, false);
+            scope.insert(name.to_string(), false);
         }
 
         Ok(())
@@ -173,7 +172,7 @@ impl<'ast> Resolver<'ast> {
 
     fn define(&mut self, name: &'ast str) {
         if let Some(scope) = self.scopes.get_mut(0) {
-            scope.insert(name, true);
+            scope.insert(name.to_string(), true);
         }
     }
     fn begin_scope(&mut self) {
