@@ -2,7 +2,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::value::Value;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Default)]
 pub struct Env {
     up: Option<Rc<RefCell<Self>>>,
     names: HashMap<String, Value>,
@@ -42,6 +42,29 @@ impl Env {
         }
 
         Value::Nil
+    }
+
+    pub fn get_at(&self, distance: usize, ident: &str) -> Value {
+        if distance == 0 {
+            self.get(ident)
+        } else {
+            self.ancestor(distance).borrow().get(ident)
+        }
+    }
+
+    fn ancestor(&self, distance: usize) -> Rc<RefCell<Self>> {
+        if distance == 0 {
+            panic!("can't get ancestor at 0 hops");
+        }
+
+        let mut env = Rc::clone(self.up.as_ref().unwrap());
+
+        for _ in 0..(distance - 1) {
+            let new_env = Rc::clone(env.borrow().up.as_ref().unwrap());
+            env = new_env;
+        }
+
+        env
     }
 
     pub fn assign(&mut self, name: String, value: Value) -> Result<(), EnvError> {

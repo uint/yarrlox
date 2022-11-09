@@ -40,23 +40,15 @@ macro_rules! impl_comparison {
 }
 
 pub struct Interpreter {
-    //globals: Rc<RefCell<Env>>,
+    globals: Rc<RefCell<Env>>,
     env: Rc<RefCell<Env>>,
     out: InterpreterOutput,
+    locals: Vec<usize>,
 }
 
 pub enum ExecResult {
     Nothing,
     LoopUnwind,
-}
-
-impl Default for Interpreter {
-    fn default() -> Self {
-        Self {
-            env: make_global_env(),
-            out: InterpreterOutput::Stdout(stdout()),
-        }
-    }
 }
 
 fn make_global_env() -> Rc<RefCell<Env>> {
@@ -68,16 +60,38 @@ fn make_global_env() -> Rc<RefCell<Env>> {
     env
 }
 
+impl Default for Interpreter {
+    fn default() -> Self {
+        let env = make_global_env();
+
+        Self {
+            globals: Rc::clone(&env),
+            env,
+            out: InterpreterOutput::Stdout(stdout()),
+            ..Default::default()
+        }
+    }
+}
+
 impl<'v> Interpreter {
     pub fn new(out: InterpreterOutput) -> Self {
+        let env = make_global_env();
+
         Self {
-            //globals: Rc::clone(&env),
-            env: make_global_env(),
+            globals: Rc::clone(&env),
+            env,
             out,
+            locals: vec![],
         }
     }
 
-    pub fn interpret(&mut self, stmts: &[Stmt]) -> Result<Value, Vec<InterpreterError>> {
+    pub fn interpret(
+        &mut self,
+        stmts: &[Stmt],
+        locals: Vec<usize>,
+    ) -> Result<Value, Vec<InterpreterError>> {
+        self.locals = locals;
+
         let errs: Vec<InterpreterError> = stmts
             .into_iter()
             .map(|s| self.execute(s))
@@ -247,9 +261,7 @@ impl<'v> Interpreter {
             Expr::Literal(l) => match l {
                 Literal::StringLit(StringLit(l)) => Value::string(l),
                 Literal::NumLit(NumLit(l)) => Num(l.parse().unwrap()),
-                Literal::Identifier(Reference { id, ident }) => {
-                    self.env.borrow().get(ident).clone()
-                }
+                Literal::Identifier(reference) => self.look_up_variable(reference),
                 Literal::Nil => Value::Nil,
                 Literal::Bool(b) => Value::Bool(*b),
             },
@@ -309,6 +321,14 @@ impl<'v> Interpreter {
             },
             Expr::Call(c) => self.interpret_call(c)?,
         })
+    }
+
+    fn look_up_variable(&self, Reference { id, ident }: &Reference) -> Value {
+        if let Some(distance) = self.locals.get(*id) {
+            self.env.borrow().get_at(*distance, ident).clone()
+        } else {
+            self.globals.borrow().get(ident).clone()
+        }
     }
 
     fn interpret_call(

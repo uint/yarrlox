@@ -10,6 +10,7 @@ mod token;
 pub mod value;
 
 use errors::ErrorReporter;
+use resolver::{resolve, ResolverError};
 use value::Value;
 
 use crate::{interpreter::Interpreter, parser::Parser};
@@ -25,16 +26,19 @@ pub fn eval<'src>(
     let mut parser = Parser::new(source);
 
     match parser.parse() {
-        Ok(stmts) => match interpreter.interpret(&stmts) {
-            Ok(v) => Ok(v),
-            Err(errs) => {
-                for err in errs.iter() {
-                    println!("{}", err);
-                }
+        Ok(stmts) => {
+            let locals = resolve(&stmts, parser.var_count())?;
+            match interpreter.interpret(&stmts, locals) {
+                Ok(v) => Ok(v),
+                Err(errs) => {
+                    for err in errs.iter() {
+                        println!("{}", err);
+                    }
 
-                Err(EvalErrors::Interpreter(errs))
+                    Err(EvalErrors::Interpreter(errs))
+                }
             }
-        },
+        }
         Err(errs) => {
             println!("parsing failed!");
             for err in errs.iter() {
@@ -50,6 +54,8 @@ pub fn eval<'src>(
 pub enum EvalErrors<'src> {
     #[error("one or more syntax errors")]
     Syntax(Vec<ParserError<'src>>),
+    #[error("{0}")]
+    Resolution(#[from] ResolverError),
     #[error("one or more runtime errors")]
     Interpreter(Vec<InterpreterError>),
 }

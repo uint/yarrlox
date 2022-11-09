@@ -20,27 +20,8 @@ impl<'src> Parser<'src> {
         }
     }
 
-    /// Recover from a syntax error by entering panic mode and discarding tokens
-    /// until a (likely) statement boundary is found.
-    fn synchronize(&mut self) {
-        if let Some(mut previous) = self.lexer.next() {
-            while let Some(token) = self.lexer.peek() {
-                use Token::*;
-
-                if previous.token == Semicolon {
-                    return;
-                }
-
-                match token {
-                    Class | Fun | Var | For | If | While | Print | Return => return,
-                    _ => previous = self.lexer.next().unwrap(),
-                }
-            }
-        }
-    }
-
-    fn is_at_end(&mut self) -> bool {
-        self.lexer.peek().is_none()
+    pub fn var_count(&self) -> usize {
+        self.next_var_expr_id
     }
 
     pub fn parse(&mut self) -> Result<Vec<Stmt>, Vec<ParserError<'src>>> {
@@ -62,6 +43,29 @@ impl<'src> Parser<'src> {
         } else {
             Err(errors)
         }
+    }
+
+    /// Recover from a syntax error by entering panic mode and discarding tokens
+    /// until a (likely) statement boundary is found.
+    fn synchronize(&mut self) {
+        if let Some(mut previous) = self.lexer.next() {
+            while let Some(token) = self.lexer.peek() {
+                use Token::*;
+
+                if previous.token == Semicolon {
+                    return;
+                }
+
+                match token {
+                    Class | Fun | Var | For | If | While | Print | Return => return,
+                    _ => previous = self.lexer.next().unwrap(),
+                }
+            }
+        }
+    }
+
+    fn is_at_end(&mut self) -> bool {
+        self.lexer.peek().is_none()
     }
 
     fn parse_decl(&mut self) -> ParseResult<'src, Stmt> {

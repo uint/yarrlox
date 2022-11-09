@@ -12,6 +12,9 @@ pub struct RunResults<'src> {
 impl<'src> RunResults<'src> {
     #[track_caller]
     pub fn assert_output(&self, expected: &str) {
+        if let Err(err) = &self.v {
+            panic!("interpreter failed with: {}", err);
+        }
         assert_eq!(self.output.trim(), expected.trim());
     }
 

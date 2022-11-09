@@ -44,6 +44,9 @@ fn run_script(path: impl AsRef<Path>) -> anyhow::Result<()> {
     match yarrlox::eval(&source, yarrlox::errors::SimpleReporter, &mut interpreter) {
         Ok(_) => Ok(()),
         Err(EvalErrors::Syntax(_)) => Err(anyhow::anyhow!("syntax errors present")),
+        Err(EvalErrors::Resolution(_)) => {
+            Err(anyhow::anyhow!("variable resolution errors present"))
+        }
         Err(EvalErrors::Interpreter(_)) => Err(anyhow::anyhow!("runtime errors present")),
     }
 }
