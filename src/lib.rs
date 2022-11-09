@@ -43,7 +43,7 @@ pub fn eval<'src>(
         Err(errs) => {
             println!("parsing failed!");
             for err in errs.iter() {
-                error_reporter.report(source, &err);
+                error_reporter.report(source, err);
             }
 
             Err(EvalErrors::Syntax(errs))

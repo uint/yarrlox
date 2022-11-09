@@ -463,7 +463,7 @@ impl<'src> Parser<'src> {
         let token = self
             .lexer
             .peek()
-            .ok_or(Error::new(None, ParserErrorKind::UnexpectedEof))?;
+            .ok_or_else(|| Error::new(None, ParserErrorKind::UnexpectedEof))?;
 
         if token == expected {
             Ok(self.lexer.next().unwrap())
@@ -479,7 +479,7 @@ impl<'src> Parser<'src> {
         let token = self
             .lexer
             .peek()
-            .ok_or(Error::new(None, ParserErrorKind::UnexpectedEof))?;
+            .ok_or_else(|| Error::new(None, ParserErrorKind::UnexpectedEof))?;
 
         if token == expected {
             Ok(self.lexer.peek_spanned().unwrap())

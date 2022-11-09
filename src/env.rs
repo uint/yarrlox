@@ -74,7 +74,7 @@ impl Env {
             return Ok(());
         }
 
-        let mut scope = self.up.as_ref().map(|up| Rc::clone(up));
+        let mut scope = self.up.as_ref().map(Rc::clone);
 
         while let Some(s) = scope {
             if s.borrow().names.contains_key(&name) {

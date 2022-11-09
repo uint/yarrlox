@@ -90,8 +90,8 @@ impl<'ast> Resolver<'ast> {
     fn resolve_fun(&mut self, fun: &'ast Function) -> ResolverResult {
         self.begin_scope();
         for param in &fun.params {
-            self.declare(&param)?;
-            self.define(&param);
+            self.declare(param)?;
+            self.define(param);
         }
         self.resolve(&fun.body)?;
         self.end_scope();
@@ -184,7 +184,7 @@ impl<'ast> Resolver<'ast> {
 
 type ResolverResult = Result<(), ResolverError>;
 
-#[derive(thiserror::Error, Debug, PartialEq)]
+#[derive(thiserror::Error, Debug, PartialEq, Eq)]
 pub enum ResolverError {
     #[error("Can't read local variable in its own initializer.")]
     SelfInitialize,

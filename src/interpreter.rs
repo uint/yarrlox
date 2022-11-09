@@ -73,7 +73,7 @@ impl Default for Interpreter {
     }
 }
 
-impl<'v> Interpreter {
+impl Interpreter {
     pub fn new(out: InterpreterOutput) -> Self {
         let env = make_global_env();
 
@@ -92,17 +92,15 @@ impl<'v> Interpreter {
     ) -> Result<Value, Vec<InterpreterError>> {
         self.locals = locals;
 
-        let errs: Vec<InterpreterError> = stmts
-            .into_iter()
+        let errs = stmts
+            .iter()
             .map(|s| self.execute(s))
-            .filter_map(Result::err)
-            .collect();
+            .filter_map(Result::err);
 
-        let (returns, errs): (Vec<_>, Vec<_>) = errs
-            .into_iter()
-            .partition(|err| matches!(err, InterpreterError::FunReturn(_)));
+        let (returns, errs): (Vec<_>, Vec<_>) =
+            errs.partition(|err| matches!(err, InterpreterError::FunReturn(_)));
 
-        if errs.len() > 0 {
+        if !errs.is_empty() {
             Err(errs)
         } else {
             Ok(returns
@@ -116,7 +114,7 @@ impl<'v> Interpreter {
         match &mut self.out {
             InterpreterOutput::Stdout(_) => String::new(),
             InterpreterOutput::String(s) => {
-                let bytes = std::mem::replace(s, Vec::new());
+                let bytes = std::mem::take(s);
                 String::from_utf8(bytes).unwrap()
             }
         }
@@ -325,9 +323,9 @@ impl<'v> Interpreter {
 
     fn look_up_variable(&self, Reference { id, ident }: &Reference) -> Value {
         if let Some(Some(distance)) = self.locals.get(*id) {
-            self.env.borrow().get_at(*distance, ident).clone()
+            self.env.borrow().get_at(*distance, ident)
         } else {
-            self.globals.borrow().get(ident).clone()
+            self.globals.borrow().get(ident)
         }
     }
 
