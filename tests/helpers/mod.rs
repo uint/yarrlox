@@ -2,7 +2,7 @@ use yarrlox::{
     interpreter::{Interpreter, InterpreterError, InterpreterOutput},
     parser::Parser,
     value::Value,
-    EvalErrors, ParserErrorKind, ResolverError,
+    EvalErrors, ParserErrorKind,
 };
 
 pub struct RunResults<'src> {
@@ -47,7 +47,7 @@ pub fn run(source: &str) -> RunResults<'_> {
     let mut parser = Parser::new();
     let mut interpreter = Interpreter::new(InterpreterOutput::String(Vec::new()));
     let v = yarrlox::eval(
-        source.as_ref(),
+        source,
         yarrlox::errors::SimpleReporter,
         &mut parser,
         &mut interpreter,

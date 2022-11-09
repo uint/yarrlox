@@ -5,6 +5,7 @@ use crate::errors::Error;
 use crate::lexer::Lexer;
 use crate::token::{SpannedToken, Token};
 
+#[derive(Default)]
 pub struct Parser {
     loop_depth: u32,
     next_var_expr_id: usize,
@@ -12,10 +13,7 @@ pub struct Parser {
 
 impl<'src> Parser {
     pub fn new() -> Self {
-        Self {
-            loop_depth: 0,
-            next_var_expr_id: 0,
-        }
+        Self::default()
     }
 
     pub fn var_count(&self) -> usize {
