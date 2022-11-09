@@ -10,10 +10,13 @@ lecture is highly recommended - it's a delectable romantic thriller, full of ups
 and down, relatable characters, and touching on universal human suffering with
 refreshing lightness.
 
-For now, there's only the tree-walk interpreter.
-
 Yes, the "really" wasn't _really_ needed in the name. Ye better not complain
 lest ye be thrown ta th' sharks.
+
+## Progress
+
+- tree-walk interpreter: 11/13 chapters
+- bytecode VM: not started
 
 ## Running _yarrlox_
 
@@ -54,6 +57,20 @@ cargo install --path .
   collected by the resolver doesn't need to be a hashmap. It's a `Vec` instead.
 - No visitor pattern in the tree-walk interpreter. I couldn't find enough
   justification for doing that and opted for enums and pattern-matching instead.
+- Returning from the top level is not treated as an error. I started using this
+  in integration tests since it's stupidly convenient.
+
+## Less-than-ideal stuff
+
+I don't want to spend time fixing these in a toy language, but I want to note
+these.
+
+- If there are multiple resolution errors in source code, only the first one
+  gets reported.
+- It feels like some code could be more functional and rely less on outside
+  state (struct methods mostly).
+- Declaring the same name multiple times is an error in a local scope, but not
+  in the global one. Feels like a confusing inconsistency.
 
 ## License
 
