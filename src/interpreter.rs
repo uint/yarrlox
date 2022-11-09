@@ -2,11 +2,11 @@ use std::cell::RefCell;
 use std::io::{stdout, Stdout, Write};
 use std::rc::Rc;
 
-use crate::ast::*;
 use crate::callable::Clock;
 use crate::env::{Env, EnvError};
 use crate::resolver::Resolver;
 use crate::value::{Type, Value};
+use crate::{ast::*, ResolverError};
 
 macro_rules! impl_arithmetic {
     ($self:tt $left:tt $op:tt $right:tt) => {
@@ -44,7 +44,6 @@ pub struct Interpreter {
     globals: Rc<RefCell<Env>>,
     env: Rc<RefCell<Env>>,
     out: InterpreterOutput,
-    locals: Vec<Option<usize>>,
     resolver: Resolver,
 }
 
@@ -70,7 +69,6 @@ impl Default for Interpreter {
             globals: Rc::clone(&env),
             env,
             out: InterpreterOutput::Stdout(stdout()),
-            locals: vec![],
             resolver: Resolver::new(),
         }
     }
@@ -84,7 +82,6 @@ impl Interpreter {
             globals: Rc::clone(&env),
             env,
             out,
-            locals: vec![],
             resolver: Resolver::new(),
         }
     }
@@ -92,9 +89,11 @@ impl Interpreter {
     pub fn interpret(
         &mut self,
         stmts: &[Stmt],
-        locals: Vec<Option<usize>>,
+        var_count: usize,
     ) -> Result<Value, Vec<InterpreterError>> {
-        self.locals = locals;
+        self.resolver
+            .resolve(stmts, var_count)
+            .map_err(|err| vec![err.into()])?;
 
         let errs = stmts
             .iter()
@@ -326,7 +325,7 @@ impl Interpreter {
     }
 
     fn look_up_variable(&self, Reference { id, ident }: &Reference) -> Value {
-        if let Some(Some(distance)) = self.locals.get(*id) {
+        if let Some(Some(distance)) = self.resolver.locals.get(*id) {
             self.env.borrow().get_at(*distance, ident)
         } else {
             self.globals.borrow().get(ident)
@@ -409,6 +408,8 @@ pub enum InterpreterError {
     NotCallable,
     #[error("function expected {expected} arguments, but received {got}")]
     ArityMismatch { expected: u8, got: usize },
+    #[error("{0}")]
+    Resolution(#[from] ResolverError),
 }
 
 impl InterpreterError {

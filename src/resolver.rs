@@ -9,14 +9,8 @@ use std::collections::{HashMap, VecDeque};
 
 use crate::ast::*;
 
-pub fn resolve(ast: &[Stmt], ref_count: usize) -> Result<Vec<Option<usize>>, ResolverError> {
-    let mut resolver = Resolver::new();
-    resolver.resolve(ast, ref_count)?;
-    Ok(resolver.locals)
-}
-
 pub struct Resolver {
-    locals: Vec<Option<usize>>,
+    pub locals: Vec<Option<usize>>,
     scopes: VecDeque<HashMap<String, bool>>,
 }
 
@@ -186,7 +180,7 @@ impl<'ast> Resolver {
 
 type ResolverResult = Result<(), ResolverError>;
 
-#[derive(thiserror::Error, Debug, PartialEq, Eq)]
+#[derive(thiserror::Error, Clone, Debug, PartialEq, Eq)]
 pub enum ResolverError {
     #[error("Can't read local variable in its own initializer.")]
     SelfInitialize,

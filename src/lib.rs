@@ -10,7 +10,6 @@ mod token;
 pub mod value;
 
 use errors::ErrorReporter;
-use resolver::resolve;
 use value::Value;
 
 use crate::{interpreter::Interpreter, parser::Parser};
@@ -27,13 +26,7 @@ pub fn eval<'src>(
 ) -> Result<Value, EvalErrors<'src>> {
     match parser.parse(source) {
         Ok(stmts) => {
-            let locals = resolve(&stmts, parser.var_count());
-            if let Err(err) = &locals {
-                // TODO: use the error reporter here
-                println!("{}", err);
-            }
-            let locals = locals?;
-            match interpreter.interpret(&stmts, locals) {
+            match interpreter.interpret(&stmts, parser.var_count()) {
                 Ok(v) => Ok(v),
                 Err(errs) => {
                     for err in errs.iter() {
